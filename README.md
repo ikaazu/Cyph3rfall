@@ -31,7 +31,7 @@ Built entirely with Swift and AppKit — no screensaver frameworks, no sandboxin
 ## Building
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Cyph3rfall.git
+git clone https://github.com/ikaazu/Cyph3rfall.git
 cd Cyph3rfall
 xcodegen generate
 open Cyph3rfall.xcodeproj
