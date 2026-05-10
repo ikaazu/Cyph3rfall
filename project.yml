@@ -1,0 +1,39 @@
+name: Cyph3rfall
+options:
+  bundleIdPrefix: com.cyph3rfall
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16"
+  generateEmptyDirectories: true
+
+fileGroups:
+  - Shared
+
+targets:
+
+  # ── Menu bar app ────────────────────────────────────────────────────────────
+  Cyph3rfall:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Shared
+        type: group
+      - path: TestApp
+        type: group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cyph3rfall.Cyph3rfall
+        PRODUCT_NAME: Cyph3rfall
+        SWIFT_VERSION: "5.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        INFOPLIST_FILE: TestApp/Info.plist
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        GCC_OPTIMIZATION_LEVEL: s
+        SWIFT_OPTIMIZATION_LEVEL: "-O"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - sdk: Cocoa.framework
+      - sdk: ServiceManagement.framework
