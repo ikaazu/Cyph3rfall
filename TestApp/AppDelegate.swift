@@ -182,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         nameLabel.alignment = .center
 
         // ── Version ───────────────────────────────────────────────────────
-        let versionLabel = NSTextField(labelWithString: "Version 1.02")
+        let versionLabel = NSTextField(labelWithString: "Version 1.01")
         versionLabel.font      = .systemFont(ofSize: 13)
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.alignment = .center
