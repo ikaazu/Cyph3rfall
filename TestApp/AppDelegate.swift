@@ -1,5 +1,7 @@
 import AppKit
 import ServiceManagement
+import LocalAuthentication
+import Carbon
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -9,7 +11,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var idleWatcher: IdleWatcher!
     private var fullScreen: FullScreenWindow?
     private var prefsController: PreferencesWindowController?
+    private var aboutPanel: NSPanel?
     private var settings = MatrixRainSettings.load()
+    private let hotkeyManager = HotkeyManager()
+
+    // MARK: - Lock state
+    /// True while a LocalAuthentication prompt is on screen — prevents stacking dialogs.
+    private var isAuthenticating = false
+    /// True when dismissal requires a successful auth challenge.
+    private var lockActive = false
+    /// Fires every 5 s during a manually-started session to check whether the
+    /// user's idle threshold has now been met, at which point lock arms itself.
+    private var lockEligibilityTimer: Timer?
 
     // Persisted idle timeout in seconds; 0 = disabled.
     private var idleTimeout: TimeInterval {
@@ -33,10 +46,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupStatusItem()
 
+        // Register the global hotkey (if one was saved).
+        hotkeyManager.onTriggered = { [weak self] in self?.showScreensaver(manual: true) }
+        applyHotkey(from: settings)
+
         idleWatcher = IdleWatcher { [weak self] in
-            DispatchQueue.main.async { self?.showScreensaver() }
+            DispatchQueue.main.async { self?.showScreensaver(manual: false) }
         }
         applyIdleTimeout()
+
+        // Activate screensaver when the system sleeps or the lid closes.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(systemWillSleep(_:)),
+            name: NSWorkspace.willSleepNotification, object: nil)
     }
 
     // MARK: - Status-item / menu
@@ -128,38 +150,96 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     @objc private func showAbout() {
-        let author    = "Greg Stock"
-        let copyright = "© 2026 \(author)"
+        // Re-use the panel if it already exists.
+        if let existing = aboutPanel {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
 
-        let credits = """
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 440, height: 460),
+            styleMask:   [.titled, .closable],
+            backing:     .buffered,
+            defer:       false
+        )
+        panel.title = "About Cyph3rfall"
+        panel.isReleasedWhenClosed = false
+        panel.isMovableByWindowBackground = true
+
+        guard let content = panel.contentView else { return }
+
+        // ── Icon ──────────────────────────────────────────────────────────
+        let iconView = NSImageView(image: NSApp.applicationIconImage)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.widthAnchor.constraint(equalToConstant: 96).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 96).isActive = true
+
+        // ── App name ──────────────────────────────────────────────────────
+        let nameLabel = NSTextField(labelWithString: "Cyph3rfall")
+        nameLabel.font      = .systemFont(ofSize: 22, weight: .bold)
+        nameLabel.alignment = .center
+
+        // ── Version ───────────────────────────────────────────────────────
+        let versionLabel = NSTextField(labelWithString: "Version 1.02")
+        versionLabel.font      = .systemFont(ofSize: 13)
+        versionLabel.textColor = .secondaryLabelColor
+        versionLabel.alignment = .center
+
+        // ── Credits ───────────────────────────────────────────────────────
+        let creditsLabel = NSTextField(wrappingLabelWithString: """
             Ambient digital rain for macOS
 
             Built with Swift & AppKit
 
             Inspired by The Matrix (1999)
-            dir. Lana & Lilly Wachowski
-            & MatrixMania for Windows
+            & MatrixMania for Windows by StrongGames
+
+            I used MatrixMania for decades, once gave feedback \
+            that improved it, missed that feeling on modern macOS, \
+            and built my own spiritual successor.
 
             No screensaver frameworks were harmed.
-            """
+            """)
+        creditsLabel.font                   = .systemFont(ofSize: 12)
+        creditsLabel.textColor              = .secondaryLabelColor
+        creditsLabel.alignment              = .center
+        creditsLabel.maximumNumberOfLines   = 0
+        creditsLabel.preferredMaxLayoutWidth = 380
 
-        let style = NSMutableParagraphStyle()
-        style.alignment = .center
+        // ── Copyright ─────────────────────────────────────────────────────
+        let copyrightLabel = NSTextField(labelWithString: "© 2026 Greg Stock")
+        copyrightLabel.font      = .systemFont(ofSize: 11)
+        copyrightLabel.textColor = .tertiaryLabelColor
+        copyrightLabel.alignment = .center
 
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font:            NSFont.systemFont(ofSize: 11),
-            .foregroundColor: NSColor.secondaryLabelColor,
-            .paragraphStyle:  style,
-        ]
-
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName:    "Cyph3rfall",
-            .applicationVersion: "1.0",
-            .version:            "",
-            .credits:            NSAttributedString(string: credits, attributes: attrs),
-            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyright,
+        // ── Layout ────────────────────────────────────────────────────────
+        let stack = NSStackView(views: [
+            iconView, nameLabel, versionLabel, creditsLabel, copyrightLabel
         ])
+        stack.orientation  = .vertical
+        stack.alignment    = .centerX
+        stack.spacing      = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(stack)
+
+        stack.setCustomSpacing(14, after: iconView)
+        stack.setCustomSpacing(4,  after: nameLabel)
+        stack.setCustomSpacing(20, after: versionLabel)
+        stack.setCustomSpacing(20, after: creditsLabel)
+
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 28),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -28),
+            stack.widthAnchor.constraint(equalToConstant: 392),
+        ])
+
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        aboutPanel = panel
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
@@ -183,7 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func startNow() {
-        showScreensaver()
+        showScreensaver(manual: true)
     }
 
     @objc private func setIdleTimeout(_ sender: NSMenuItem) {
@@ -203,9 +283,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 newSettings.save()
                 // Push live into any active full-screen window.
                 self.fullScreen?.primaryRainView?.settings = newSettings
+                // Re-register the global hotkey with any updated combo.
+                self.applyHotkey(from: newSettings)
             }
             prefsController?.onStartNow = { [weak self] in
-                self?.showScreensaver()
+                self?.showScreensaver(manual: true)
             }
         }
         prefsController?.refresh(from: settings)
@@ -216,18 +298,116 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Screensaver
 
-    private func showScreensaver() {
+    private func showScreensaver(manual: Bool) {
         guard fullScreen == nil else { return }
         idleWatcher.stop()
 
-        let fs = FullScreenWindow { [weak self] in
-            guard let self else { return }
-            self.fullScreen = nil
-            self.idleWatcher.resetIdleState()
-            self.applyIdleTimeout()
+        // Determine initial lock state.
+        if manual {
+            // Manual start: lock is not active yet.
+            // It will arm once the user's idle threshold has been sitting idle
+            // for at least idleTimeout seconds (same rule as auto-activation).
+            lockActive = false
+            if settings.requirePassword && idleTimeout > 0 {
+                startLockEligibilityTimer()
+            }
+        } else {
+            // Idle-triggered: threshold already met — arm lock immediately.
+            lockActive = settings.requirePassword
         }
+
+        let fs = FullScreenWindow(
+            onDismissRequested: { [weak self] in
+                self?.handleDismissRequest()
+            },
+            onDismiss: { [weak self] in
+                guard let self else { return }
+                self.lockEligibilityTimer?.invalidate()
+                self.lockEligibilityTimer = nil
+                self.lockActive = false
+                self.isAuthenticating = false
+                self.fullScreen = nil
+                self.idleWatcher.resetIdleState()
+                self.applyIdleTimeout()
+                // If the settings window was open when the screensaver launched,
+                // bring it back to the front and restart its preview.
+                self.prefsController?.resumePreview()
+            }
+        )
         fullScreen = fs
         fs.show(settings: settings)
+    }
+
+    /// Called whenever the user moves the mouse, presses a key, etc.
+    /// Routes through LocalAuthentication when the lock is armed.
+    private func handleDismissRequest() {
+        guard !isAuthenticating else { return }   // auth dialog already on screen
+
+        if settings.requirePassword && lockActive {
+            authenticate()
+        } else {
+            fullScreen?.dismiss()
+        }
+    }
+
+    private func authenticate() {
+        isAuthenticating = true
+        let context = LAContext()
+        var error: NSError?
+
+        // Prefer Apple Watch unlock if the Watch app is paired and reachable;
+        // fall back to Touch ID / Face ID + password.
+        let policy: LAPolicy = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithWatch, error: &error)
+            ? .deviceOwnerAuthenticationWithWatch
+            : .deviceOwnerAuthentication
+
+        guard context.canEvaluatePolicy(policy, error: &error) else {
+            // No auth mechanism available — just dismiss.
+            isAuthenticating = false
+            fullScreen?.dismiss()
+            return
+        }
+
+        context.evaluatePolicy(
+            policy,
+            localizedReason: "Unlock Cyph3rfall"
+        ) { [weak self] success, _ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isAuthenticating = false
+                if success { self.fullScreen?.dismiss() }
+                // On failure or cancel: do nothing — rain stays visible.
+            }
+        }
+    }
+
+    @objc private func systemWillSleep(_ notification: Notification) {
+        DispatchQueue.main.async { self.showScreensaver(manual: false) }
+    }
+
+    /// Polls system idle time every 5 s during a manually-started session.
+    /// Once the user's chosen idle threshold is met, the lock arms itself.
+    private func startLockEligibilityTimer() {
+        lockEligibilityTimer?.invalidate()
+        lockEligibilityTimer = Timer.scheduledTimer(
+            withTimeInterval: 5, repeats: true
+        ) { [weak self] _ in
+            guard let self, self.fullScreen != nil else {
+                self?.lockEligibilityTimer?.invalidate()
+                return
+            }
+            let idle = CGEventSource.secondsSinceLastEventType(
+                .combinedSessionState,
+                eventType: CGEventType(rawValue: ~UInt32(0))!
+            )
+            if idle >= self.idleTimeout {
+                self.lockActive = true
+                self.lockEligibilityTimer?.invalidate()
+                self.lockEligibilityTimer = nil
+            }
+        }
+        // Ensure the timer fires even when the run loop is in event-tracking mode.
+        RunLoop.main.add(lockEligibilityTimer!, forMode: .common)
     }
 
     // MARK: - Menu bar icon
@@ -268,6 +448,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Helpers
+
+    private func applyHotkey(from settings: MatrixRainSettings) {
+        guard settings.hotkeyCode >= 0 else { hotkeyManager.unregister(); return }
+        let mods = NSEvent.ModifierFlags(rawValue: UInt(settings.hotkeyModifiers))
+        hotkeyManager.update(keyCode: settings.hotkeyCode,
+                             carbonModifiers: carbonModifiers(from: mods))
+    }
 
     private func applyIdleTimeout() {
         if idleTimeout > 0 {

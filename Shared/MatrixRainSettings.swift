@@ -17,10 +17,29 @@ struct MatrixRainSettings {
 
     // --- Animation ---
     var speedMultiplier: Double = 1.0
-    var density: Double = 0.9
+    var density: Double = 1.5
 
     // --- Presets ---
-    var classicDenseMode: Bool = false
+    var classicDenseMode:   Bool = false
+    var colorZonesEnabled:  Bool = false
+
+    // --- Message ---
+    var messageEnabled: Bool   = false
+    var customMessage:  String = ""
+
+    // --- Global hotkey (-1 = not set) ---
+    var hotkeyCode:      Int    = -1
+    var hotkeyModifiers: Int    = 0     // NSEvent.ModifierFlags rawValue
+    var hotkeyCharacter: String = ""    // single display character, e.g. "S"
+
+    // --- Security ---
+    var requirePassword: Bool = false
+
+    // --- Clock overlay ---
+    var showClock:     Bool    = false
+    var showDate:      Bool    = false
+    var clockFontName: String  = "Gill Sans"
+    var clockFontSize: CGFloat = 80
 
     static let `default` = MatrixRainSettings()
 }
@@ -100,6 +119,42 @@ extension MatrixRainSettings {
 
     static let glyphSizeOptions: [(label: String, value: CGFloat)] = [
         ("Small", 10), ("Normal", 16), ("Large", 22)
+    ]
+
+    static let trailLengthOptions: [(label: String, value: Int)] = [
+        ("Short", 12), ("Normal", 22), ("Long", 35)
+    ]
+
+    /// Fonts offered in the clock font picker.
+    /// Every entry ships with macOS 14 Sonoma.
+    static let clockFontOptions: [(label: String, name: String)] = [
+        ("Helvetica Neue",        "Helvetica Neue"),
+        ("Avenir",                "Avenir"),
+        ("Futura",                "Futura"),
+        ("Gill Sans",             "Gill Sans"),
+        ("Optima",                "Optima"),
+        ("Trebuchet MS",          "Trebuchet MS"),
+        ("Baskerville",           "Baskerville"),
+        ("Didot",                 "Didot"),
+        ("Georgia",               "Georgia"),
+        ("American Typewriter",   "American Typewriter"),
+        ("Impact",                "Impact"),
+        ("Menlo",                 "Menlo"),
+        ("Courier New",           "Courier New"),
+    ]
+
+    static let clockFontSizeRange: ClosedRange<CGFloat> = 36 ... 144
+
+    /// Pre-loaded messages for the message-overlay picker.
+    /// The first entry is the default selection shown in the popup.
+    static let messagePresets: [String] = [
+        "CYPHΞRFALL",
+        "WAKE UP NEO",
+        "THE MATRIX HAS YOU",
+        "FOLLOW THE WHITE RABBIT",
+        "THERE IS NO SPOON",
+        "FREE YOUR MIND",
+        "KNOCK KNOCK",
     ]
 
     static func nearest<T: FloatingPoint>(in options: [(label: String, value: T)], to current: T) -> Int {

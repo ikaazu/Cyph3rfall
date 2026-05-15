@@ -19,11 +19,17 @@ final class FullScreenWindow {
     private var windows: [NSWindow] = []
     private var localMonitor:  Any?
     private var globalMonitor: Any?
+    /// Called when user input is detected — AppDelegate decides whether to
+    /// authenticate or dismiss immediately.
+    private let onDismissRequested: () -> Void
+    /// Called after the windows are actually torn down.
     private let onDismiss: () -> Void
     private var settleWorkItem: DispatchWorkItem?
 
-    init(onDismiss: @escaping () -> Void) {
-        self.onDismiss = onDismiss
+    init(onDismissRequested: @escaping () -> Void,
+         onDismiss: @escaping () -> Void) {
+        self.onDismissRequested = onDismissRequested
+        self.onDismiss          = onDismiss
     }
 
     // MARK: - Public
@@ -33,6 +39,7 @@ final class FullScreenWindow {
 
         for (index, screen) in NSScreen.screens.enumerated() {
             let win = makeWindow(for: screen, settings: settings, isPrimary: index == 0)
+            win.alphaValue = 0          // start invisible; fade-in reveals the rain
             windows.append(win)
         }
 
@@ -40,8 +47,16 @@ final class FullScreenWindow {
         NSApp.activate(ignoringOtherApps: true)
         windows.first?.makeKeyAndOrderFront(nil)
 
-        // Wait briefly before arming dismiss monitors so the
-        // mouse-moved event from activation doesn't fire immediately.
+        // Fade in over 1.5 s — the desktop shows through the transparent window
+        // and the rain materialises from it.
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration        = 1.5
+            ctx.timingFunction  = CAMediaTimingFunction(name: .easeInEaseOut)
+            for win in windows { win.animator().alphaValue = 1.0 }
+        }
+
+        // Arm dismiss monitors after a short settle so the activation event
+        // doesn't trigger an instant dismissal.
         let item = DispatchWorkItem { [weak self] in self?.armMonitors() }
         settleWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
@@ -51,20 +66,28 @@ final class FullScreenWindow {
         settleWorkItem?.cancel()
         settleWorkItem = nil
 
+        // Remove monitors immediately — no more dismiss requests during the fade.
         if let m = localMonitor  { NSEvent.removeMonitor(m) }
         if let m = globalMonitor { NSEvent.removeMonitor(m) }
         localMonitor  = nil
         globalMonitor = nil
 
-        for win in windows {
-            (win.contentView?.subviews.first as? MatrixRainView)?.stopAnimation()
-            win.orderOut(nil)
-        }
-        windows.removeAll()
-        primaryRainView = nil
-
-        NSCursor.unhide()
-        onDismiss()
+        // Fade out, then tear down in the completion handler.
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration       = 0.8
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            for win in windows { win.animator().alphaValue = 0 }
+        }, completionHandler: { [weak self] in
+            guard let self else { return }
+            for win in self.windows {
+                (win.contentView?.subviews.first as? MatrixRainView)?.stopAnimation()
+                win.orderOut(nil)
+            }
+            self.windows.removeAll()
+            self.primaryRainView = nil
+            NSCursor.unhide()
+            self.onDismiss()
+        })
     }
 
     // MARK: - Private
@@ -104,12 +127,12 @@ final class FullScreenWindow {
         ]
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-            self?.dismiss()
-            return nil   // swallow the event
+            self?.onDismissRequested()
+            return nil   // swallow the event so it doesn't leak to the desktop
         }
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] _ in
-            self?.dismiss()
+            self?.onDismissRequested()
         }
     }
 }

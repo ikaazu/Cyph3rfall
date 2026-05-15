@@ -2,14 +2,29 @@ import Foundation
 import CoreGraphics
 
 /// The pool of characters drawn in the rain.
-/// Half-width katakana (U+FF65–FF9F) + digits + uppercase + symbols.
+///
+/// Composition (approximate draw probability):
+///   ~80 % half-width katakana  (U+FF65–FF9F) — the dominant Matrix glyph set
+///   ~12 % symbols              — add visual noise without Latin feel
+///   ~5  % digits               — sparse numeric punctuation
+///   ~3  % uppercase Latin      — occasional English letter for flavour
+///
+/// Achieved by adding katakana 4× and keeping the rest at 1×.
 let matrixGlyphPool: [Character] = {
-    var pool: [Character] = []
+    var katakana: [Character] = []
     for cp in 0xFF65 ... 0xFF9F {
-        if let scalar = Unicode.Scalar(cp) { pool.append(Character(scalar)) }
+        if let scalar = Unicode.Scalar(cp) { katakana.append(Character(scalar)) }
     }
-    pool.append(contentsOf: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&*+-=<>?".map { $0 })
-    return pool
+
+    let symbols: [Character] = Array("!@#$%&*+-=<>?|\\/:~^".map { $0 })
+    let digits:  [Character] = Array("0123456789".map { $0 })
+    let latin:   [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ".map { $0 })
+
+    // Weight: katakana ×4, symbols ×2, digits ×1, latin ×1
+    return katakana + katakana + katakana + katakana
+         + symbols  + symbols
+         + digits
+         + latin
 }()
 
 /// Model for one falling column of glyphs.
@@ -31,6 +46,10 @@ final class GlyphColumn {
     // Gives the trail an organic, flickering quality.
     var brightnessJitter: [CGFloat]
 
+    // Persistent per-column dimming (0.55 … 1.00).
+    // Simulates rain at different depths — some columns bright, others receding.
+    let columnBrightness: CGFloat
+
     // Flash countdown: while > 0 the head renders as pure white.
     var flashTimer: Int = 0
 
@@ -48,11 +67,12 @@ final class GlyphColumn {
         self.viewHeight  = viewHeight
         self.cellSize    = cellSize
 
-        trailLength     = max(4, settings.trailLength + Int.random(in: -6 ... 10))
-        glyphs          = (0 ..< trailLength).map { _ in matrixGlyphPool.randomElement()! }
+        trailLength      = max(4, settings.trailLength + Int.random(in: -6 ... 10))
+        glyphs           = (0 ..< trailLength).map { _ in matrixGlyphPool.randomElement()! }
         brightnessJitter = (0 ..< trailLength).map { _ in CGFloat.random(in: 0.78 ... 1.22) }
-        speed           = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
-        headY           = -CGFloat.random(in: 0 ... viewHeight + cellSize * CGFloat(trailLength))
+        columnBrightness = CGFloat.random(in: 0.55 ... 1.00)
+        speed            = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
+        headY            = -CGFloat.random(in: 0 ... viewHeight + cellSize * CGFloat(trailLength))
     }
 
     func update(dt: Double) {

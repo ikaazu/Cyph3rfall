@@ -3,12 +3,24 @@ import Foundation
 extension MatrixRainSettings {
 
     private enum Key {
-        static let speedIndex       = "speedIndex"
-        static let density          = "density"        // raw Double (0.1 … 2.0)
-        static let sizeIndex        = "glyphSizeIndex"
-        static let showGlow         = "showGlow"
-        static let colorPresetIndex = "colorPresetIndex"
-        static let classicDenseMode = "classicDenseMode"
+        static let speedIndex         = "speedIndex"
+        static let density            = "density"        // raw Double (0.1 … 5.0)
+        static let sizeIndex          = "glyphSizeIndex"
+        static let trailLengthIndex   = "trailLengthIndex"
+        static let showGlow           = "showGlow"
+        static let colorPresetIndex   = "colorPresetIndex"
+        static let classicDenseMode   = "classicDenseMode"
+        static let colorZonesEnabled  = "colorZonesEnabled"
+        static let requirePassword    = "requirePassword"
+        static let showClock          = "showClock"
+        static let showDate           = "showDate"
+        static let clockFontName      = "clockFontName"
+        static let clockFontSize      = "clockFontSize"
+        static let messageEnabled     = "messageEnabled"
+        static let customMessage      = "customMessage"
+        static let hotkeyCode         = "hotkeyCode"
+        static let hotkeyModifiers    = "hotkeyModifiers"
+        static let hotkeyCharacter    = "hotkeyCharacter"
     }
 
     // MARK: - Load / Save
@@ -45,10 +57,24 @@ extension MatrixRainSettings {
         var s = MatrixRainSettings.default
         s.speedMultiplier  = speedOptions[int(Key.speedIndex).clamped(to: speedOptions.indices)].value
         s.glyphSize        = glyphSizeOptions[int(Key.sizeIndex).clamped(to: glyphSizeOptions.indices)].value
+        s.trailLength      = trailLengthOptions[int(Key.trailLengthIndex).clamped(to: trailLengthOptions.indices)].value
         s.showGlow         = bool(Key.showGlow)
         s.colorPreset      = ColorPreset(rawValue: int(Key.colorPresetIndex)
                                 .clamped(to: 0 ..< ColorPreset.allCases.count)) ?? .matrixGreen
-        s.classicDenseMode = bool(Key.classicDenseMode)
+        s.classicDenseMode  = bool(Key.classicDenseMode)
+        s.colorZonesEnabled = bool(Key.colorZonesEnabled)
+        s.requirePassword   = bool(Key.requirePassword)
+        s.showClock         = bool(Key.showClock)
+        s.showDate          = bool(Key.showDate)
+        if let name = dict[Key.clockFontName] as? String, !name.isEmpty {
+            s.clockFontName = name
+        }
+        let rawSize = double(Key.clockFontSize)
+        if rawSize > 0 {
+            s.clockFontSize = CGFloat(min(max(rawSize,
+                Double(MatrixRainSettings.clockFontSizeRange.lowerBound)),
+                Double(MatrixRainSettings.clockFontSizeRange.upperBound)))
+        }
 
         // Density stored as raw Double since the slider replaced the old index.
         let rawDensity = double(Key.density)
@@ -56,17 +82,45 @@ extension MatrixRainSettings {
             s.density = min(max(rawDensity, MatrixRainSettings.densityRange.lowerBound),
                             MatrixRainSettings.densityRange.upperBound)
         }
+
+        s.messageEnabled = bool(Key.messageEnabled)
+        if let msg = dict[Key.customMessage] as? String {
+            s.customMessage = msg
+        }
+        // hotkeyCode stored as Int; absence or -1 means no hotkey.
+        if let code = dict[Key.hotkeyCode] as? Int, code >= 0 {
+            s.hotkeyCode      = code
+            s.hotkeyModifiers = dict[Key.hotkeyModifiers] as? Int ?? 0
+            s.hotkeyCharacter = dict[Key.hotkeyCharacter] as? String ?? ""
+        }
         return s
     }
 
     private func saveToFile(_ url: URL) {
+        let trailIdx = MatrixRainSettings.trailLengthOptions
+            .enumerated()
+            .min(by: { abs($0.element.value - trailLength) < abs($1.element.value - trailLength) })?
+            .offset ?? 1
+
         let dict: [String: Any] = [
-            Key.speedIndex:       MatrixRainSettings.nearest(in: MatrixRainSettings.speedOptions,     to: speedMultiplier),
-            Key.density:          density,
-            Key.sizeIndex:        MatrixRainSettings.nearest(in: MatrixRainSettings.glyphSizeOptions, to: glyphSize),
-            Key.showGlow:         showGlow,
-            Key.colorPresetIndex: colorPreset.rawValue,
-            Key.classicDenseMode: classicDenseMode,
+            Key.speedIndex:         MatrixRainSettings.nearest(in: MatrixRainSettings.speedOptions,     to: speedMultiplier),
+            Key.density:            density,
+            Key.sizeIndex:          MatrixRainSettings.nearest(in: MatrixRainSettings.glyphSizeOptions, to: glyphSize),
+            Key.trailLengthIndex:   trailIdx,
+            Key.showGlow:           showGlow,
+            Key.colorPresetIndex:   colorPreset.rawValue,
+            Key.classicDenseMode:   classicDenseMode,
+            Key.colorZonesEnabled:  colorZonesEnabled,
+            Key.requirePassword:    requirePassword,
+            Key.showClock:          showClock,
+            Key.showDate:           showDate,
+            Key.clockFontName:      clockFontName,
+            Key.clockFontSize:      Double(clockFontSize),
+            Key.messageEnabled:     messageEnabled,
+            Key.customMessage:      customMessage,
+            Key.hotkeyCode:         hotkeyCode,
+            Key.hotkeyModifiers:    hotkeyModifiers,
+            Key.hotkeyCharacter:    hotkeyCharacter,
         ]
         guard let data = try? PropertyListSerialization.data(
             fromPropertyList: dict, format: .xml, options: 0) else { return }
