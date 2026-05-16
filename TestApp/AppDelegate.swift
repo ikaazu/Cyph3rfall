@@ -59,6 +59,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(systemWillSleep(_:)),
             name: NSWorkspace.willSleepNotification, object: nil)
+
+        // Reset any stale auth state when the system wakes. If the Mac slept
+        // while an LAContext evaluation was in flight, the completion block
+        // never fires and isAuthenticating stays true forever — locking the
+        // user out with no way to dismiss the screensaver.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(systemDidWake(_:)),
+            name: NSWorkspace.didWakeNotification, object: nil)
     }
 
     // MARK: - Status-item / menu
@@ -182,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         nameLabel.alignment = .center
 
         // ── Version ───────────────────────────────────────────────────────
-        let versionLabel = NSTextField(labelWithString: "Version 1.01")
+        let versionLabel = NSTextField(labelWithString: "Version 1.02")
         versionLabel.font      = .systemFont(ofSize: 13)
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.alignment = .center
@@ -352,6 +360,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func authenticate() {
         isAuthenticating = true
+
+        // Safety valve: if evaluatePolicy's completion block never fires for any
+        // reason (sleep interruption, system hiccup, etc.) reset after 90 s so
+        // the user can try again rather than being permanently locked out.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
+            guard let self, self.isAuthenticating else { return }
+            self.isAuthenticating = false
+        }
+
         let context = LAContext()
         var error: NSError?
 
@@ -383,6 +400,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func systemWillSleep(_ notification: Notification) {
         DispatchQueue.main.async { self.showScreensaver(manual: false) }
+    }
+
+    @objc private func systemDidWake(_ notification: Notification) {
+        DispatchQueue.main.async {
+            // Any LAContext created before sleep is now invalid — its completion
+            // block will never fire. Reset unconditionally so the user is never
+            // permanently blocked from dismissing the screensaver.
+            self.isAuthenticating = false
+
+            // If the screensaver is still showing and the lock is armed, present
+            // a fresh authentication prompt now that the system has woken.
+            if self.fullScreen != nil && self.lockActive {
+                self.authenticate()
+            }
+        }
     }
 
     /// Polls system idle time every 5 s during a manually-started session.
