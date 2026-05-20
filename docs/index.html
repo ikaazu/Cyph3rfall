@@ -197,6 +197,23 @@
       margin: 0 2rem;
     }
 
+    /* ── Settings screenshot ────────────────────────────── */
+    .screenshot-wrap {
+      margin: 3rem auto 0;
+      max-width: 780px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0, 224, 20, 0.15),
+                  0 8px 40px rgba(0, 0, 0, 0.6),
+                  0 0 60px rgba(0, 224, 20, 0.08);
+    }
+
+    .settings-screenshot {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     /* ── Features grid ──────────────────────────────────── */
     .features-grid {
       display: grid;
@@ -401,6 +418,13 @@
 <section id="features">
   <p class="section-label">Features</p>
   <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+
+  <div class="screenshot-wrap">
+    <img
+      class="settings-screenshot"
+      src="settings-screenshot.png"
+      alt="Cyph3rfall Settings panel showing speed, density, colour, Chromafall, message overlay, lock, and clock options alongside a live preview of the rain.">
+  </div>
 
   <div class="features-grid">
 
