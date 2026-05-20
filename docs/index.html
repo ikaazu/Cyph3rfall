@@ -52,6 +52,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
+      background: #000;
       opacity: 0.55;
     }
 
@@ -583,6 +584,8 @@
   function resize() {
     W = canvas.width  = canvas.offsetWidth;
     H = canvas.height = canvas.offsetHeight;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
     initCols();
   }
 
@@ -606,11 +609,15 @@
   }
 
   let last = 0;
+  let frameCount = 0;
   function tick(ts) {
     const dt = Math.min((ts - last) / 1000, 0.05);
     last = ts;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    // For the first ~60 frames (~1 s) use a near-solid black fill so the
+    // rain builds up from nothing — no flash on page load or resize.
+    ctx.fillStyle = frameCount < 60 ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.18)';
+    frameCount++;
     ctx.fillRect(0, 0, W, H);
 
     ctx.font = `${CELL * 0.85}px monospace`;
@@ -628,16 +635,13 @@
         if (gy + CELL < 0 || gy > H) continue;
 
         if (i === 0) {
-          ctx.fillStyle = HEAD_COLOR;
-          ctx.shadowBlur  = 10;
-          ctx.shadowColor = TRAIL_COLOR;
+          ctx.globalAlpha = 1;
+          ctx.fillStyle   = HEAD_COLOR;
         } else {
           const t = 1 - i / len;
           const a = Math.max(0, t * t * col.brightness);
-          ctx.fillStyle   = TRAIL_COLOR;
           ctx.globalAlpha = a;
-          ctx.shadowBlur  = 0;
-          ctx.shadowColor = 'transparent';
+          ctx.fillStyle   = TRAIL_COLOR;
         }
 
         ctx.fillText(col.glyphs[i], col.x + CELL / 2, gy + CELL * 0.85);
@@ -657,7 +661,7 @@
     requestAnimationFrame(tick);
   }
 
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', () => { frameCount = 0; resize(); });
   resize();
   requestAnimationFrame(tick);
 })();
