@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyph3rfall — Ambient Digital Rain for macOS</title>
+  <meta name="description" content="A native macOS menu bar app that fills your screen with cascading Matrix-style glyphs. Free, open source, built with Swift.">
+  <meta property="og:title" content="Cyph3rfall — Ambient Digital Rain for macOS">
+  <meta property="og:description" content="A native macOS menu bar app that fills your screen with cascading Matrix-style glyphs.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/ikaazu/Cyph3rfall/main/TestApp/Assets.xcassets/AppIcon.appiconset/icon_512x512.png">
+  <meta property="og:url" content="https://cyph3rfall.app">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ikaazu/Cyph3rfall/main/TestApp/Assets.xcassets/AppIcon.appiconset/icon_32x32.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #00e014;
+      --green-dim:  #00a00e;
+      --green-dark: #003805;
+      --head:       #d9ffd9;
+      --bg:         #000;
+      --text:       #c8c8c8;
+      --text-dim:   #707070;
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Hero ──────────────────────────────────────────────── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      overflow: hidden;
+    }
+
+    #rain-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.55;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .app-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 26px;
+      box-shadow: 0 0 60px rgba(0, 224, 20, 0.35), 0 0 120px rgba(0, 224, 20, 0.15);
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--head);
+      text-shadow: 0 0 40px rgba(0, 224, 20, 0.6), 0 0 80px rgba(0, 224, 20, 0.25);
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--green-dim);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.25rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 224, 20, 0.3);
+      color: var(--green-dim);
+      background: rgba(0, 56, 5, 0.4);
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+      padding: 0.9rem 2.2rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      border: none;
+      border-radius: var(--radius);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+      box-shadow: 0 0 30px rgba(0, 224, 20, 0.5);
+    }
+
+    .btn-download:hover {
+      background: var(--head);
+      box-shadow: 0 0 50px rgba(0, 224, 20, 0.7);
+      transform: translateY(-2px);
+    }
+
+    .btn-download svg { flex-shrink: 0; }
+
+    .download-note {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: -0.5rem;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ── Shared section styles ───────────────────────────── */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--head);
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+
+    .section-body {
+      font-size: 1.05rem;
+      color: var(--text);
+      max-width: 680px;
+      line-height: 1.75;
+    }
+
+    /* ── Divider ────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(0, 224, 20, 0.12);
+      margin: 0 2rem;
+    }
+
+    /* ── Features grid ──────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 3.5rem;
+    }
+
+    .feature-card {
+      background: rgba(0, 56, 5, 0.18);
+      border: 1px solid rgba(0, 224, 20, 0.14);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(0, 224, 20, 0.35);
+      background: rgba(0, 56, 5, 0.28);
+    }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--head);
+      margin-bottom: 0.4rem;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ── About ──────────────────────────────────────────── */
+    #about { background: rgba(0, 56, 5, 0.08); }
+
+    #about-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+
+    .quote-block {
+      margin-top: 2.5rem;
+      padding: 1.75rem 2rem;
+      border-left: 3px solid var(--green);
+      background: rgba(0, 56, 5, 0.25);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.75;
+      font-style: italic;
+    }
+
+    /* ── Install ────────────────────────────────────────── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--green-dark);
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-text {
+      padding-top: 0.2rem;
+      font-size: 0.98rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .step-text strong { color: var(--head); }
+
+    .callout {
+      margin-top: 2.5rem;
+      padding: 1.25rem 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 200, 0, 0.25);
+      background: rgba(255, 200, 0, 0.06);
+      font-size: 0.9rem;
+      color: #c8b060;
+      line-height: 1.6;
+    }
+
+    /* ── Requirements ───────────────────────────────────── */
+    .req-list {
+      list-style: none;
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .req-list li {
+      font-size: 0.98rem;
+      color: var(--text);
+      padding-left: 1.4rem;
+      position: relative;
+    }
+
+    .req-list li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--green);
+    }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid rgba(0, 224, 20, 0.1);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    footer a {
+      color: var(--green-dim);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--green); }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .hero-title { font-size: 2.8rem; }
+      .app-icon   { width: 90px; height: 90px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<div id="hero">
+  <canvas id="rain-canvas"></canvas>
+  <div class="hero-content">
+    <img
+      class="app-icon"
+      src="https://raw.githubusercontent.com/ikaazu/Cyph3rfall/main/TestApp/Assets.xcassets/AppIcon.appiconset/icon_256x256.png"
+      alt="Cyph3rfall icon">
+
+    <h1 class="hero-title">Cyph3rfall</h1>
+    <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
+
+    <div class="hero-badges">
+      <span class="badge">Free &amp; Open Source</span>
+      <span class="badge">Swift &amp; AppKit</span>
+      <span class="badge">macOS 14+</span>
+      <span class="badge">No Dependencies</span>
+    </div>
+
+    <a class="btn-download"
+       href="https://github.com/ikaazu/Cyph3rfall/releases/latest"
+       target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 13.17l3.59-3.58L18 13l-6 6-6-6 1.41-1.41L11 14.17V7h2v8.17z"/>
+      </svg>
+      Download Latest Release
+    </a>
+    <p class="download-note">macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+  </div>
+
+  <div class="scroll-hint">↓ &nbsp; scroll</div>
+</div>
+
+<!-- ══ FEATURES ══════════════════════════════════════════════ -->
+<section id="features">
+  <p class="section-label">Features</p>
+  <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+
+  <div class="features-grid">
+
+    <div class="feature-card">
+      <span class="feature-icon">☰</span>
+      <div class="feature-title">Lives in the Menu Bar</div>
+      <p class="feature-desc">No Dock icon, no clutter. Access everything from the Ξ icon in your menu bar. Launches at login, stays out of the way.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">⏱</span>
+      <div class="feature-title">Idle Activation</div>
+      <p class="feature-desc">Starts automatically after a configurable idle timeout — 1 minute to 30 minutes, or never. Also activates on system sleep.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">⌨️</span>
+      <div class="feature-title">Global Shortcut</div>
+      <p class="feature-desc">Record a system-wide keyboard shortcut to launch the screensaver instantly from any app, no menu required.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🖥</span>
+      <div class="feature-title">Multi-Monitor</div>
+      <p class="feature-desc">Covers every connected display simultaneously, with smooth fade-in and fade-out transitions across all screens.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🎨</span>
+      <div class="feature-title">9 Colour Presets</div>
+      <p class="feature-desc">Green, Amber, Cyan, White, Purple, Blue, Red, Orange, and Pink. Each preset has a coordinated trail and head glyph colour.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🌈</span>
+      <div class="feature-title">Chromafall</div>
+      <p class="feature-desc">Give every falling stream its own randomly chosen colour. Re-randomised each time a stream wraps — always in motion.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">💬</span>
+      <div class="feature-title">Message Overlay</div>
+      <p class="feature-desc">Hide a phrase in the rain. Characters materialise one by one as falling columns pass through them, then fade as a group. Includes built-in presets.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🕐</span>
+      <div class="feature-title">Clock Overlay</div>
+      <p class="feature-desc">Display the time and date in a customisable font, subtly rendered over the rain with slow drift to prevent screen burn.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🔒</span>
+      <div class="feature-title">Password Lock</div>
+      <p class="feature-desc">Require Touch ID, Face ID, or Apple Watch authentication to dismiss. Lock arms automatically once your idle threshold is met.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">⚡️</span>
+      <div class="feature-title">High Performance</div>
+      <p class="feature-desc">Rendered entirely with Core Graphics. Allocation-optimised drawing pipeline — smooth at 60 fps even at maximum density with Chromafall enabled.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🎛</span>
+      <div class="feature-title">Deep Customisation</div>
+      <p class="feature-desc">Speed, density, glyph size, trail length, glow, Classic Dense Mode — tweak everything with a live preview in the settings panel.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🪄</span>
+      <div class="feature-title">No Frameworks</div>
+      <p class="feature-desc">Pure Swift and AppKit. No third-party dependencies, no screensaver framework workarounds. Just a native Mac app doing its thing.</p>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══ ABOUT ═════════════════════════════════════════════════ -->
+<div id="about">
+  <div id="about-inner">
+    <p class="section-label">The Story</p>
+    <h2 class="section-title">Built by a non-coder.<br>Powered by Claude.</h2>
+    <p class="section-body">
+      Cyph3rfall started as a simple question: why isn't there a good Matrix rain screensaver for modern macOS? I had used MatrixMania on Windows for years and missed that feeling. So I decided to build my own — the problem being that I'm not a software developer.
+    </p>
+
+    <blockquote class="quote-block">
+      Every feature in this app was conceived and directed by me, and implemented in close collaboration with
+      <strong>Claude Code</strong> by Anthropic. I described what I wanted in plain language.
+      Claude Code wrote the Swift, caught the bugs, and optimised the rendering. This is what building software
+      looks like when AI handles the code and a human handles the vision.
+      <br><br>
+      It is very much a work in progress — and that's exactly the point.
+    </blockquote>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ══ INSTALL ════════════════════════════════════════════════ -->
+<section id="install">
+  <p class="section-label">Installation</p>
+  <h2 class="section-title">Up and running<br>in under a minute.</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <strong>Download</strong> the latest <code>Cyph3rfall-v*.zip</code> from the
+        <a href="https://github.com/ikaazu/Cyph3rfall/releases/latest" target="_blank" rel="noopener" style="color:var(--green-dim)">Releases page</a>.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Unzip</strong> and drag <strong>Cyph3rfall.app</strong> to your <strong>/Applications</strong> folder.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Right-click → Open</strong> on first launch to bypass Gatekeeper (see note below).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">The <strong>Ξ icon</strong> appears in your menu bar. Click it to start, configure, or enable Launch at Login.</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    ⚠️ <strong>First-launch security prompt:</strong> Cyph3rfall is signed but not notarized through Apple's paid developer program. macOS will block it on the first open — right-click the app and choose <strong>Open</strong> to approve it. You will only need to do this once.
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══ REQUIREMENTS ═══════════════════════════════════════════ -->
+<section id="requirements">
+  <p class="section-label">Requirements</p>
+  <h2 class="section-title">What you need.</h2>
+  <ul class="req-list">
+    <li>macOS 14.0 Sonoma or later</li>
+    <li>Apple Silicon or Intel Mac</li>
+    <li>No additional software or frameworks required</li>
+    <li>For Touch ID / Apple Watch unlock: device must support biometric or Watch authentication</li>
+  </ul>
+</section>
+
+<hr class="divider">
+
+<!-- ══ FOOTER ════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/ikaazu/Cyph3rfall" target="_blank" rel="noopener">GitHub Repository</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall/releases" target="_blank" rel="noopener">Releases</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall/issues" target="_blank" rel="noopener">Report an Issue</a>
+  </div>
+  <p>Cyph3rfall is free and open source — MIT licensed.</p>
+  <p style="margin-top:0.4rem;">Made by Greg Stock &nbsp;·&nbsp; Built with <a href="https://claude.ai/claude-code" target="_blank" rel="noopener">Claude Code</a> by Anthropic</p>
+  <p style="margin-top:0.4rem; font-size:0.78rem; opacity:0.5;">Inspired by <em>The Matrix</em> (1999) and MatrixMania for Windows</p>
+</footer>
+
+<!-- ══ RAIN ANIMATION ════════════════════════════════════════ -->
+<script>
+(function () {
+  const canvas  = document.getElementById('rain-canvas');
+  const ctx     = canvas.getContext('2d');
+
+  // Glyph pool — half-width katakana + symbols + digits (mirrors the Swift app)
+  const pool = [];
+  for (let cp = 0xFF65; cp <= 0xFF9F; cp++) pool.push(String.fromCodePoint(cp));
+  '!@#$%&*+-=<>?|\\/:~^0123456789'.split('').forEach(c => pool.push(c));
+
+  const CELL        = 16;
+  const HEAD_COLOR  = '#d9ffd9';
+  const TRAIL_COLOR = '#00e014';
+
+  let cols = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+    initCols();
+  }
+
+  function randGlyph() { return pool[Math.random() * pool.length | 0]; }
+
+  function initCols() {
+    const count  = Math.ceil(W / CELL);
+    const newCols = [];
+    for (let i = 0; i < count; i++) {
+      const trailLen = 12 + (Math.random() * 18 | 0);
+      newCols.push({
+        x:           i * CELL,
+        headY:       -Math.random() * H,
+        speed:       60 + Math.random() * 120,
+        trailLen,
+        brightness:  0.55 + Math.random() * 0.45,
+        glyphs:      Array.from({ length: trailLen }, randGlyph),
+      });
+    }
+    cols = newCols;
+  }
+
+  let last = 0;
+  function tick(ts) {
+    const dt = Math.min((ts - last) / 1000, 0.05);
+    last = ts;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font = `${CELL * 0.85}px monospace`;
+    ctx.textAlign = 'center';
+
+    for (const col of cols) {
+      col.headY += col.speed * dt;
+
+      // Mutate one random glyph per frame
+      col.glyphs[Math.random() * col.trailLen | 0] = randGlyph();
+
+      const len = col.trailLen;
+      for (let i = 0; i < len; i++) {
+        const gy = col.headY - i * CELL;
+        if (gy + CELL < 0 || gy > H) continue;
+
+        if (i === 0) {
+          ctx.fillStyle = HEAD_COLOR;
+          ctx.shadowBlur  = 10;
+          ctx.shadowColor = TRAIL_COLOR;
+        } else {
+          const t = 1 - i / len;
+          const a = Math.max(0, t * t * col.brightness);
+          ctx.fillStyle   = TRAIL_COLOR;
+          ctx.globalAlpha = a;
+          ctx.shadowBlur  = 0;
+          ctx.shadowColor = 'transparent';
+        }
+
+        ctx.fillText(col.glyphs[i], col.x + CELL / 2, gy + CELL * 0.85);
+        ctx.globalAlpha = 1;
+      }
+
+      // Reset when fully off screen
+      if (col.headY - len * CELL > H) {
+        col.headY   = -CELL * (1 + Math.random() * 4);
+        col.speed   = 60 + Math.random() * 120;
+        col.trailLen = 12 + (Math.random() * 18 | 0);
+        col.glyphs  = Array.from({ length: col.trailLen }, randGlyph);
+        col.brightness = 0.55 + Math.random() * 0.45;
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

@@ -1,34 +1,47 @@
 # Cyph3rfall
 
-**Ambient Digital Rain for macOS** — a native menu bar app that fills your screen with cascading Matrix-style glyphs.
+**Ambient Digital Rain for macOS** — a native menu bar app that fills every screen with cascading Matrix-style glyphs.
 
-![Cyph3rfall Icon](TestApp/Assets.xcassets/AppIcon.appiconset/icon_128x128.png)
+🌐 **[cyph3rfall.app](https://cyph3rfall.app)** &nbsp;·&nbsp; 📦 **[Latest Release](https://github.com/ikaazu/Cyph3rfall/releases/latest)**
 
 ---
 
 ## What it is
 
-Cyph3rfall lives in your menu bar and activates after a configurable idle period, covering every connected display with falling half-width katakana, digits, letters, and symbols. Dismiss instantly with any mouse or keyboard input.
+Cyph3rfall lives in your menu bar and activates after a configurable idle timeout, covering every connected display with falling half-width katakana, digits, letters, and symbols. Dismiss with any mouse or keyboard input — or require Touch ID / Apple Watch authentication first.
 
-Built entirely with Swift and AppKit — no screensaver frameworks, no sandboxing workarounds.
+Built entirely with Swift and AppKit. No third-party dependencies, no screensaver framework workarounds.
 
 ## Features
 
-- **Menu bar agent** — no Dock icon, always accessible via the Ξ icon
-- **Idle activation** — configurable timeout from 1 to 30 minutes (or never)
-- **Multi-monitor** — covers every display simultaneously
-- **Live settings preview** — see changes in real time before applying
-- **9 colour presets** — Green, Amber, Cyan, White, Purple, Blue, Red, Orange, Pink
-- **Density slider** — 10% to 500%, up to 5 overlapping streams per column
-- **Launch at Login** — self-registers via SMAppService
-- **Single instance enforcement** — no duplicate menu bar icons
+| | |
+|---|---|
+| ☰ Menu bar agent | No Dock icon — always accessible via the Ξ icon |
+| ⏱ Idle activation | Configurable timeout: 1 min to 30 min, or never |
+| ⌨️ Global shortcut | System-wide hotkey to launch from any app |
+| 🖥 Multi-monitor | Covers every display with smooth fade in/out |
+| 🎨 9 colour presets | Green, Amber, Cyan, White, Purple, Blue, Red, Orange, Pink |
+| 🌈 Chromafall | Per-stream random colours, re-randomised on each wrap |
+| 💬 Message overlay | A phrase that materialises character-by-character in the rain |
+| 🕐 Clock overlay | Time and date with custom font and slow drift |
+| 🔒 Password lock | Touch ID / Face ID / Apple Watch to dismiss |
+| ⚡️ Optimised rendering | Smooth at 60 fps at maximum density with Chromafall |
+
+## Installation
+
+1. Download `Cyph3rfall-v*.zip` from the [Releases page](https://github.com/ikaazu/Cyph3rfall/releases/latest)
+2. Unzip and drag **Cyph3rfall.app** to `/Applications`
+3. **Right-click → Open** on first launch to bypass Gatekeeper
+4. The **Ξ** icon appears in your menu bar
+
+> **Note:** Cyph3rfall is signed but not notarized through Apple's paid developer program. macOS will show a security prompt on the very first open — right-click the app and choose **Open** to approve it once.
 
 ## Requirements
 
 - macOS 14.0 Sonoma or later
-- [xcodegen](https://github.com/yonaskolb/XcodeGen) (to regenerate the .xcodeproj if needed)
+- Apple Silicon or Intel
 
-## Building
+## Building from source
 
 ```bash
 git clone https://github.com/ikaazu/Cyph3rfall.git
@@ -37,40 +50,13 @@ xcodegen generate
 open Cyph3rfall.xcodeproj
 ```
 
-Then select the **Cyph3rfall** scheme and press **⌘R**.
+Select the **Cyph3rfall** scheme and press **⌘R**.
 
-## Installation
+## The story
 
-1. Build the app in Xcode (⌘B)
-2. Copy Cyph3rfall.app to /Applications
-3. Launch it — the Ξ icon appears in the menu bar
-4. Click **Ξ → Launch at Login** to start it automatically at login
-5. Optionally set System Settings → Lock Screen → Start Screen Saver → Never
-
-## Project structure
-
-```
-Shared/          Core rendering
-  GlyphColumn.swift
-  MatrixRainView.swift
-  MatrixRainSettings.swift
-  MatrixRainSettings+Defaults.swift
-  PreferencesWindowController.swift
-
-TestApp/         Menu bar application
-  AppDelegate.swift
-  FullScreenWindow.swift
-  IdleWatcher.swift
-  main.swift
-  Info.plist
-  Assets.xcassets/
-
-project.yml      xcodegen project spec
-```
+Cyph3rfall was conceived and directed by Greg Stock — not a software developer — in close collaboration with **Claude Code** by Anthropic. Every feature was described in plain language and implemented iteratively through conversation. It is a work in progress, and that's the point.
 
 ## Credits
 
-Inspired by *The Matrix* (1999, dir. Lana & Lilly Wachowski) and *MatrixMania* for Windows.
-Built with Swift & AppKit by Greg Stock.
-
-> *No screensaver frameworks were harmed.*
+Inspired by *The Matrix* (1999) and MatrixMania for Windows by StrongGames.  
+Built with Swift & AppKit · [cyph3rfall.app](https://cyph3rfall.app)
