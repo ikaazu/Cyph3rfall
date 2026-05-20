@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy &amp; Liability — Cyph3rfall</title>
+  <meta name="description" content="Privacy policy and liability disclaimer for Cyph3rfall — Ambient Digital Rain for macOS.">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ikaazu/Cyph3rfall/main/TestApp/Assets.xcassets/AppIcon.appiconset/icon_32x32.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #00e014;
+      --green-dim:  #00a00e;
+      --green-dark: #003805;
+      --head:       #d9ffd9;
+      --bg:         #000;
+      --text:       #c8c8c8;
+      --text-dim:   #707070;
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid rgba(0, 224, 20, 0.1);
+      position: sticky;
+      top: 0;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--head);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-logo:hover { color: var(--green); }
+
+    .nav-back {
+      font-size: 0.85rem;
+      color: var(--green-dim);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .nav-back:hover { color: var(--green); }
+
+    /* ── Page content ─────────────────────────────────────────── */
+    main {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 5rem 2rem 6rem;
+    }
+
+    .page-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.75rem;
+    }
+
+    .page-title {
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 700;
+      color: var(--head);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-updated {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 3.5rem;
+    }
+
+    /* ── Sections ─────────────────────────────────────────────── */
+    .policy-section {
+      margin-bottom: 3rem;
+    }
+
+    .policy-section h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--head);
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(0, 224, 20, 0.12);
+    }
+
+    .policy-section p {
+      font-size: 0.97rem;
+      color: var(--text);
+      line-height: 1.75;
+      margin-bottom: 0.85rem;
+    }
+
+    .policy-section p:last-child { margin-bottom: 0; }
+
+    .policy-section ul {
+      list-style: none;
+      margin: 0.5rem 0 0.85rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .policy-section ul li {
+      font-size: 0.97rem;
+      color: var(--text);
+      line-height: 1.6;
+      padding-left: 1.4rem;
+      position: relative;
+    }
+
+    .policy-section ul li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--green);
+    }
+
+    .callout {
+      margin-top: 1rem;
+      padding: 1.1rem 1.4rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 224, 20, 0.2);
+      background: rgba(0, 56, 5, 0.2);
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .callout strong { color: var(--head); }
+
+    a {
+      color: var(--green-dim);
+      text-decoration: none;
+    }
+
+    a:hover { color: var(--green); }
+
+    /* ── Divider ──────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(0, 224, 20, 0.1);
+      margin: 3rem 0;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid rgba(0, 224, 20, 0.1);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    footer a {
+      color: var(--green-dim);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/">CYPHΞRFALL</a>
+  <a class="nav-back" href="/">← Back to cyph3rfall.app</a>
+</nav>
+
+<main>
+  <p class="page-label">Legal</p>
+  <h1 class="page-title">Privacy &amp; Liability</h1>
+  <p class="page-updated">Last updated: May 2025</p>
+
+  <!-- ── Privacy ──────────────────────────────────────────── -->
+  <div class="policy-section">
+    <h2>Privacy</h2>
+    <p>
+      Cyph3rfall runs entirely on your Mac. It collects no analytics, no telemetry,
+      and no usage statistics of any kind. Nothing you do inside the app is ever
+      reported back anywhere.
+    </p>
+    <p>
+      All settings — idle timeout, colour preferences, glyph size, message text,
+      shortcut keys, and everything else — are stored locally in macOS user defaults
+      on your own machine. They never leave your Mac.
+    </p>
+    <p>
+      If you enable the password lock feature, authentication is handled entirely
+      by macOS through the LocalAuthentication framework (Touch ID, Face ID, or
+      Apple Watch). Cyph3rfall never sees or stores your credentials.
+    </p>
+
+    <div class="callout">
+      <strong>Short version:</strong> Cyph3rfall never sends anything to any server.
+      There are no accounts, no sign-ins, no cloud sync, and no third-party SDKs
+      embedded in the app.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── This Website ─────────────────────────────────────── -->
+  <div class="policy-section">
+    <h2>This Website</h2>
+    <p>
+      cyph3rfall.app is hosted on GitHub Pages. When you visit, GitHub may log
+      standard server information — IP address, browser type, referring URL — for
+      operational and security purposes, in accordance with
+      <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub's privacy policy</a>.
+      These logs are outside my control and I do not receive them.
+    </p>
+    <p>
+      This site sets no cookies, runs no tracking scripts, and uses no third-party
+      analytics. The Matrix rain animation on the home page is pure JavaScript
+      with no external dependencies.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Reliability ──────────────────────────────────────── -->
+  <div class="policy-section">
+    <h2>Reliability</h2>
+    <p>
+      Cyph3rfall is actively developed and runs stably on the hardware I test it
+      on, but it is a one-person project built in collaboration with AI tooling —
+      not a commercial software house. It can still surprise you.
+    </p>
+    <p>
+      If the app behaves unexpectedly — including (but not limited to) activation
+      at the wrong time, failure to dismiss, or issues with the password lock
+      feature — please report it on the
+      <a href="https://github.com/ikaazu/Cyph3rfall/issues" target="_blank" rel="noopener">GitHub Issues page</a>
+      or email <a href="mailto:dev@cyph3rfall.app">dev@cyph3rfall.app</a>.
+      I take bug reports seriously and address them as quickly as I can.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Liability ────────────────────────────────────────── -->
+  <div class="policy-section">
+    <h2>Liability</h2>
+    <p>
+      Cyph3rfall is provided <strong>as-is, without warranty of any kind</strong>,
+      express or implied, including but not limited to warranties of merchantability,
+      fitness for a particular purpose, or non-infringement.
+    </p>
+    <p>
+      To the fullest extent permitted by applicable law, the developer shall not be
+      liable for any direct, indirect, incidental, special, consequential, or
+      exemplary damages arising from your use of — or inability to use — this
+      software. This includes, without limitation:
+    </p>
+    <ul>
+      <li>Loss of data or files</li>
+      <li>Unintended screen activation or failure to activate</li>
+      <li>Issues with the password lock feature, including lock-out scenarios</li>
+      <li>Any interruption to your workflow or business</li>
+    </ul>
+    <p>
+      By downloading and using Cyph3rfall you agree to these terms. If you do not
+      agree, please uninstall the app.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Contact ──────────────────────────────────────────── -->
+  <div class="policy-section">
+    <h2>Contact</h2>
+    <p>
+      Questions about this policy or anything else? Reach out at
+      <a href="mailto:dev@cyph3rfall.app">dev@cyph3rfall.app</a>.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall/releases" target="_blank" rel="noopener">Releases</a>
+    <a href="mailto:dev@cyph3rfall.app">Contact</a>
+  </div>
+  <p>Cyph3rfall is free and open source — MIT licensed.</p>
+  <p style="margin-top:0.4rem;">Made by <a href="https://gregstock.com" target="_blank" rel="noopener">Greg Stock</a> &nbsp;·&nbsp; Built with <a href="https://claude.ai/claude-code" target="_blank" rel="noopener">Claude Code</a> by Anthropic</p>
+</footer>
+
+</body>
+</html>
