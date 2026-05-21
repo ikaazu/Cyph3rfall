@@ -213,8 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // ── Version ───────────────────────────────────────────────────────
         let appVersion  = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
-        let versionLabel = NSTextField(labelWithString: "Version \(appVersion) (\(buildNumber))")
+        let versionLabel = NSTextField(labelWithString: "Version \(appVersion)")
         versionLabel.font      = .systemFont(ofSize: 13)
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.alignment = .center
