@@ -706,7 +706,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     @objc private func densityChanged(_ sender: NSSlider) {
         let value = sender.doubleValue
         densityValueLabel.stringValue = densityText(value)
-        densityPerfNote.isHidden      = value <= 2.0
+        densityPerfNote.isHidden      = value <= 1.51
         previewRainView.settings = collect()
     }
 
