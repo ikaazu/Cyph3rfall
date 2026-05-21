@@ -11,6 +11,7 @@
 		11E733FC67DE8C6E36914EFC /* FullScreenWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7BC6499A1695DA30E44264F /* FullScreenWindow.swift */; };
 		30F4CC1A5A47A87BCEB52DCA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE17D61C9B6F2001A0D67BD6 /* Assets.xcassets */; };
 		36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */; };
+		3E6302C8C9861A62EDADDD0A /* Cyph3rfallSettings+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E948343CBE53F4F6FEEB06 /* Cyph3rfallSettings+JSON.swift */; };
 		536466C4D5B969794D251F8F /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8C4FE92A1CE9D616986722 /* main.swift */; };
 		58A7B76955EDA45D96BDDEF1 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */; };
 		5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */; };
@@ -29,6 +30,7 @@
 		0145BAF416971E2D6E1B2D2C /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cyph3rfallView.swift; sourceTree = "<group>"; };
 		21BC6D641812C830FB3F3E02 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
+		22E948343CBE53F4F6FEEB06 /* Cyph3rfallSettings+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Cyph3rfallSettings+JSON.swift"; sourceTree = "<group>"; };
 		281214C9DE0BA05990B904A1 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderView.swift; sourceTree = "<group>"; };
 		4509648807876BB6203CC1D9 /* IdleWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleWatcher.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 			children = (
 				C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */,
 				4C68C7746627378F4777CCAF /* Cyph3rfallSettings+Defaults.swift */,
+				22E948343CBE53F4F6FEEB06 /* Cyph3rfallSettings+JSON.swift */,
 				0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */,
 				FECD733036FEEB8C762A1EC4 /* GlyphColumn.swift */,
 				41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */,
@@ -190,6 +193,7 @@
 			files = (
 				BF88C9303EF143BF2C010D09 /* AppDelegate.swift in Sources */,
 				74A3D710A5EF47DA71346711 /* Cyph3rfallSettings+Defaults.swift in Sources */,
+				3E6302C8C9861A62EDADDD0A /* Cyph3rfallSettings+JSON.swift in Sources */,
 				5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */,
 				36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */,
 				11E733FC67DE8C6E36914EFC /* FullScreenWindow.swift in Sources */,

@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var prefsController: PreferencesWindowController?
     private var aboutPanel: NSPanel?
     private var settings = Cyph3rfallSettings.load()
+    private var updateAvailableVersion: String? = nil
     private let hotkeyManager = HotkeyManager()
 
     // MARK: - Lock state
@@ -67,6 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(systemDidWake(_:)),
             name: NSWorkspace.didWakeNotification, object: nil)
+
+        // Check GitHub for a newer release. Runs in the background; menu is
+        // updated on the main thread only if a newer version is found.
+        checkForUpdates()
     }
 
     // MARK: - Status-item / menu
@@ -81,6 +86,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
+
+        // ── Update available banner (shown only when a newer version is found) ──
+        if let v = updateAvailableVersion {
+            let updateItem = NSMenuItem(title: "⬆ Update Available (v\(v))",
+                                        action: #selector(openReleasePage),
+                                        keyEquivalent: "")
+            updateItem.target = self
+            menu.addItem(updateItem)
+            menu.addItem(.separator())
+        }
 
         // ── Start Now ──────────────────────────────────────────────────
         let startItem = NSMenuItem(title: "Start Now",
@@ -166,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 440, height: 520),
             styleMask:   [.titled, .closable],
             backing:     .buffered,
             defer:       false
@@ -190,30 +205,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         nameLabel.alignment = .center
 
         // ── Version ───────────────────────────────────────────────────────
-        let versionLabel = NSTextField(labelWithString: "Version 1.02")
+        let appVersion  = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        let versionLabel = NSTextField(labelWithString: "Version \(appVersion) (\(buildNumber))")
         versionLabel.font      = .systemFont(ofSize: 13)
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.alignment = .center
 
+        // ── Check for Updates link ────────────────────────────────────────
+        let updateBtn = NSButton(title: "Check for Updates…",
+                                 target: self,
+                                 action: #selector(checkForUpdatesManually))
+        updateBtn.isBordered = false
+        updateBtn.attributedTitle = NSAttributedString(
+            string: "Check for Updates…",
+            attributes: [.foregroundColor: NSColor.linkColor,
+                         .font: NSFont.systemFont(ofSize: 13)])
+
+        // ── Tagline ───────────────────────────────────────────────────────
+        let taglineLabel = NSTextField(labelWithString: "Ambient digital rain for macOS")
+        taglineLabel.font      = .systemFont(ofSize: 12)
+        taglineLabel.textColor = .secondaryLabelColor
+        taglineLabel.alignment = .center
+
+        // ── Website + email links ─────────────────────────────────────────
+        let siteRow  = makeAboutLinkView(icon: "link",     title: "cyph3rfall.app",     action: #selector(openWebsite))
+        let emailRow = makeAboutLinkView(icon: "envelope", title: "dev@cyph3rfall.app", action: #selector(openContactEmail))
+        let linksRow = NSStackView(views: [siteRow, emailRow])
+        linksRow.orientation = .horizontal
+        linksRow.spacing     = 22
+        linksRow.alignment   = .centerY
+
         // ── Credits ───────────────────────────────────────────────────────
-        let creditsLabel = NSTextField(wrappingLabelWithString: """
-            Ambient digital rain for macOS
-
-            Built with Swift & AppKit
-
-            Inspired by The Matrix (1999)
-            & MatrixMania for Windows by StrongGames
-
-            I used MatrixMania for decades, once gave feedback \
-            that improved it, missed that feeling on modern macOS, \
-            and built my own spiritual successor.
-
-            No screensaver frameworks were harmed.
-            """)
-        creditsLabel.font                   = .systemFont(ofSize: 12)
-        creditsLabel.textColor              = .secondaryLabelColor
-        creditsLabel.alignment              = .center
-        creditsLabel.maximumNumberOfLines   = 0
+        let creditsLabel = NSTextField(wrappingLabelWithString:
+            "Built with Swift & AppKit\n\n" +
+            "Inspired by The Matrix (1999) and MatrixMania for Windows by StrongGames.\n\n" +
+            "I used MatrixMania for decades, once gave feedback that improved it, " +
+            "missed that feeling on modern macOS, and built my own spiritual successor.\n\n" +
+            "No screensaver frameworks were harmed.")
+        creditsLabel.font                    = .systemFont(ofSize: 12)
+        creditsLabel.textColor               = .secondaryLabelColor
+        creditsLabel.alignment               = .center
+        creditsLabel.maximumNumberOfLines    = 0
         creditsLabel.preferredMaxLayoutWidth = 380
 
         // ── Copyright ─────────────────────────────────────────────────────
@@ -224,18 +257,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // ── Layout ────────────────────────────────────────────────────────
         let stack = NSStackView(views: [
-            iconView, nameLabel, versionLabel, creditsLabel, copyrightLabel
+            iconView, nameLabel, versionLabel, updateBtn,
+            taglineLabel, linksRow, creditsLabel, copyrightLabel,
         ])
-        stack.orientation  = .vertical
-        stack.alignment    = .centerX
-        stack.spacing      = 8
+        stack.orientation = .vertical
+        stack.alignment   = .centerX
+        stack.spacing     = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
 
         stack.setCustomSpacing(14, after: iconView)
-        stack.setCustomSpacing(4,  after: nameLabel)
-        stack.setCustomSpacing(20, after: versionLabel)
-        stack.setCustomSpacing(20, after: creditsLabel)
+        stack.setCustomSpacing(2,  after: nameLabel)
+        stack.setCustomSpacing(6,  after: versionLabel)
+        stack.setCustomSpacing(16, after: updateBtn)
+        stack.setCustomSpacing(14, after: taglineLabel)
+        stack.setCustomSpacing(18, after: linksRow)
+        stack.setCustomSpacing(16, after: creditsLabel)
 
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
@@ -248,6 +285,81 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         aboutPanel = panel
+    }
+
+    /// Builds a small icon + blue-text link suitable for the About panel.
+    private func makeAboutLinkView(icon: String, title: String, action: Selector) -> NSView {
+        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let img    = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
+                         .withSymbolConfiguration(config)
+        let imgView = NSImageView(image: img ?? NSImage())
+        imgView.contentTintColor = .linkColor
+
+        let btn = NSButton(title: title, target: self, action: action)
+        btn.isBordered = false
+        btn.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [.foregroundColor: NSColor.linkColor,
+                         .font: NSFont.systemFont(ofSize: 13)])
+
+        let h = NSStackView(views: [imgView, btn])
+        h.orientation = .horizontal
+        h.spacing     = 4
+        h.alignment   = .centerY
+        return h
+    }
+
+    @objc private func openWebsite() {
+        NSWorkspace.shared.open(URL(string: "https://cyph3rfall.app")!)
+    }
+
+    @objc private func openContactEmail() {
+        NSWorkspace.shared.open(URL(string: "mailto:dev@cyph3rfall.app")!)
+    }
+
+    /// Manual update check triggered from the About panel.
+    /// Shows feedback in both the update-found and up-to-date cases.
+    @objc private func checkForUpdatesManually() {
+        guard let url = URL(string: "https://api.github.com/repos/ikaazu/Cyph3rfall/releases/latest") else { return }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("2022-11-28",                  forHTTPHeaderField: "X-GitHub-Api-Version")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+                let alert   = NSAlert()
+
+                if let data, error == nil,
+                   let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let tagName = json["tag_name"] as? String {
+
+                    let latest = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+
+                    if self.isNewerVersion(latest, than: current) {
+                        self.updateAvailableVersion = latest
+                        self.rebuildMenu()
+                        alert.messageText     = "Update Available"
+                        alert.informativeText = "Version \(latest) is available. Visit the releases page to download it."
+                        alert.addButton(withTitle: "View Release")
+                        alert.addButton(withTitle: "Later")
+                        if alert.runModal() == .alertFirstButtonReturn {
+                            self.openReleasePage()
+                        }
+                    } else {
+                        alert.messageText     = "You're Up to Date"
+                        alert.informativeText = "Cyph3rfall \(current) is the latest version."
+                        alert.runModal()
+                    }
+                } else {
+                    alert.messageText     = "Update Check Failed"
+                    alert.informativeText = "Could not reach the update server. Check your internet connection and try again."
+                    alert.alertStyle      = .warning
+                    alert.runModal()
+                }
+            }
+        }.resume()
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
@@ -477,6 +589,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         image.unlockFocus()
         image.isTemplate = true   // system handles light/dark inversion
         return image
+    }
+
+    // MARK: - Update check
+
+    private func checkForUpdates() {
+        guard let url = URL(string: "https://api.github.com/repos/ikaazu/Cyph3rfall/releases/latest") else { return }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+            guard let self, let data, error == nil,
+                  let json     = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tagName  = json["tag_name"] as? String
+            else { return }
+
+            // Strip leading "v" — GitHub tags are "v1.1", bundle is "1.1".
+            let latest  = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+
+            guard self.isNewerVersion(latest, than: current) else { return }
+
+            DispatchQueue.main.async {
+                self.updateAvailableVersion = latest
+                self.rebuildMenu()
+            }
+        }.resume()
+    }
+
+    /// Returns true if `candidate` is a higher version number than `current`.
+    private func isNewerVersion(_ candidate: String, than current: String) -> Bool {
+        let lhs = candidate.split(separator: ".").compactMap { Int($0) }
+        let rhs  = current.split(separator: ".").compactMap { Int($0) }
+        let len  = max(lhs.count, rhs.count)
+        for i in 0 ..< len {
+            let l = i < lhs.count ? lhs[i] : 0
+            let r = i < rhs.count ? rhs[i] : 0
+            if l != r { return l > r }
+        }
+        return false
+    }
+
+    @objc private func openReleasePage() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/ikaazu/Cyph3rfall/releases/latest")!)
     }
 
     // MARK: - Helpers
