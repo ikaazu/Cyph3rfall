@@ -8,18 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		055A8051A93ECE73A1C65E9B /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9657F9AB32AE1373B9F7C605 /* HotkeyManager.swift */; };
-		118A33893B43E21CD46BCE7D /* MatrixRainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C0CFE3EC07AEE324DC77F1 /* MatrixRainView.swift */; };
 		11E733FC67DE8C6E36914EFC /* FullScreenWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7BC6499A1695DA30E44264F /* FullScreenWindow.swift */; };
 		30F4CC1A5A47A87BCEB52DCA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE17D61C9B6F2001A0D67BD6 /* Assets.xcassets */; };
+		36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */; };
 		536466C4D5B969794D251F8F /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8C4FE92A1CE9D616986722 /* main.swift */; };
 		58A7B76955EDA45D96BDDEF1 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */; };
+		5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */; };
 		70CD538C70EA7BBADF4D5F93 /* IdleWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4509648807876BB6203CC1D9 /* IdleWatcher.swift */; };
+		74A3D710A5EF47DA71346711 /* Cyph3rfallSettings+Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C68C7746627378F4777CCAF /* Cyph3rfallSettings+Defaults.swift */; };
 		978B52467B460232F4C8D794 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 281214C9DE0BA05990B904A1 /* Cocoa.framework */; };
 		BF88C9303EF143BF2C010D09 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7D6497895BEEB20CA0CA75 /* AppDelegate.swift */; };
 		C5D435840FD7C5DE5500566F /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66991525B60CE6BF5F736F2A /* Carbon.framework */; };
-		CE3AB4A1B968A92596DAE281 /* MatrixRainSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032E07936CAB78FAA9C28AA1 /* MatrixRainSettings.swift */; };
 		CEEE2B2A52D67F4E122663CF /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 885BC01680644E992A98C290 /* LocalAuthentication.framework */; };
-		CF719737EEBE8C9553C233F8 /* MatrixRainSettings+Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D90F3E8F2AB508282794F4 /* MatrixRainSettings+Defaults.swift */; };
 		D861A3696371EFB0C65A2EF9 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21BC6D641812C830FB3F3E02 /* PreferencesWindowController.swift */; };
 		E01FA23EC2C838F20660A60E /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0145BAF416971E2D6E1B2D2C /* ServiceManagement.framework */; };
 		FC144FBABBA0DBF7A9442EBC /* GlyphColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = FECD733036FEEB8C762A1EC4 /* GlyphColumn.swift */; };
@@ -27,20 +27,20 @@
 
 /* Begin PBXFileReference section */
 		0145BAF416971E2D6E1B2D2C /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
-		032E07936CAB78FAA9C28AA1 /* MatrixRainSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixRainSettings.swift; sourceTree = "<group>"; };
-		15C0CFE3EC07AEE324DC77F1 /* MatrixRainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixRainView.swift; sourceTree = "<group>"; };
+		0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cyph3rfallView.swift; sourceTree = "<group>"; };
 		21BC6D641812C830FB3F3E02 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		281214C9DE0BA05990B904A1 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderView.swift; sourceTree = "<group>"; };
 		4509648807876BB6203CC1D9 /* IdleWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleWatcher.swift; sourceTree = "<group>"; };
 		4B9E189D0E3A40DAB3398E56 /* Cyph3rfall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cyph3rfall.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C68C7746627378F4777CCAF /* Cyph3rfallSettings+Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Cyph3rfallSettings+Defaults.swift"; sourceTree = "<group>"; };
 		66991525B60CE6BF5F736F2A /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		885BC01680644E992A98C290 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		9657F9AB32AE1373B9F7C605 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		A41C366544A47CA14DE69736 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A7BC6499A1695DA30E44264F /* FullScreenWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenWindow.swift; sourceTree = "<group>"; };
 		AC7D6497895BEEB20CA0CA75 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B2D90F3E8F2AB508282794F4 /* MatrixRainSettings+Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatrixRainSettings+Defaults.swift"; sourceTree = "<group>"; };
+		C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cyph3rfallSettings.swift; sourceTree = "<group>"; };
 		CE17D61C9B6F2001A0D67BD6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD8C4FE92A1CE9D616986722 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FECD733036FEEB8C762A1EC4 /* GlyphColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphColumn.swift; sourceTree = "<group>"; };
@@ -97,11 +97,11 @@
 		FC5FCF2DEF0D3F69B29C6540 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */,
+				4C68C7746627378F4777CCAF /* Cyph3rfallSettings+Defaults.swift */,
+				0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */,
 				FECD733036FEEB8C762A1EC4 /* GlyphColumn.swift */,
 				41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */,
-				032E07936CAB78FAA9C28AA1 /* MatrixRainSettings.swift */,
-				B2D90F3E8F2AB508282794F4 /* MatrixRainSettings+Defaults.swift */,
-				15C0CFE3EC07AEE324DC77F1 /* MatrixRainView.swift */,
 				21BC6D641812C830FB3F3E02 /* PreferencesWindowController.swift */,
 			);
 			path = Shared;
@@ -189,14 +189,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF88C9303EF143BF2C010D09 /* AppDelegate.swift in Sources */,
+				74A3D710A5EF47DA71346711 /* Cyph3rfallSettings+Defaults.swift in Sources */,
+				5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */,
+				36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */,
 				11E733FC67DE8C6E36914EFC /* FullScreenWindow.swift in Sources */,
 				FC144FBABBA0DBF7A9442EBC /* GlyphColumn.swift in Sources */,
 				055A8051A93ECE73A1C65E9B /* HotkeyManager.swift in Sources */,
 				58A7B76955EDA45D96BDDEF1 /* HotkeyRecorderView.swift in Sources */,
 				70CD538C70EA7BBADF4D5F93 /* IdleWatcher.swift in Sources */,
-				CF719737EEBE8C9553C233F8 /* MatrixRainSettings+Defaults.swift in Sources */,
-				CE3AB4A1B968A92596DAE281 /* MatrixRainSettings.swift in Sources */,
-				118A33893B43E21CD46BCE7D /* MatrixRainView.swift in Sources */,
 				D861A3696371EFB0C65A2EF9 /* PreferencesWindowController.swift in Sources */,
 				536466C4D5B969794D251F8F /* main.swift in Sources */,
 			);

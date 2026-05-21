@@ -1,17 +1,18 @@
 import AppKit
 
 /// Preferences panel for Cyph3rfall.
-/// Left side: controls. Right side: live MatrixRainView preview.
+/// Left side: controls. Right side: live Cyph3rfallView preview.
 final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate {
 
-    var onApply:    ((MatrixRainSettings) -> Void)?
+    var onApply:    ((Cyph3rfallSettings) -> Void)?
     var onStartNow: (() -> Void)?
 
     private var speedControl:      NSSegmentedControl!
     private var densitySlider:     NSSlider!
     private var densityValueLabel: NSTextField!
-    private var sizeControl:       NSSegmentedControl!
-    private var trailControl:      NSSegmentedControl!
+    private var sizeControl:          NSSegmentedControl!
+    private var trailControl:         NSSegmentedControl!
+    private var columnSpacingControl: NSSegmentedControl!
     private var colorControl:      NSPopUpButton!
     private var glowCheckbox:       NSButton!
     private var colorZonesCheckbox: NSButton!
@@ -21,21 +22,22 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var clockFontControl:  NSPopUpButton!
     private var clockSizeSlider:   NSSlider!
     private var clockSizeLabel:    NSTextField!
-    private var dateCheckbox:      NSButton!
+    private var dateCheckbox:            NSButton!
+    private var clockColorPresetCheckbox: NSButton!
     private var messageCheckbox:      NSButton!
     private var messagePresetControl: NSPopUpButton!
     private var messageField:         NSTextField!
     private var messageCountLabel:    NSTextField!
     private var hotkeyRecorder:    HotkeyRecorderView!
-    private var previewRainView:   MatrixRainView!
+    private var previewRainView:   Cyph3rfallView!
 
     private static let messageLimit = 30
 
-    private var originalSettings: MatrixRainSettings
+    private var originalSettings: Cyph3rfallSettings
 
     // MARK: - Init
 
-    init(settings: MatrixRainSettings) {
+    init(settings: Cyph3rfallSettings) {
         self.originalSettings = settings
 
         let panel = NSPanel(
@@ -54,7 +56,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
     required init?(coder: NSCoder) { fatalError("use init(settings:)") }
 
-    func refresh(from settings: MatrixRainSettings) {
+    func refresh(from settings: Cyph3rfallSettings) {
         originalSettings = settings
         populate(from: settings)
         if !previewRainView.isAnimating { previewRainView.startAnimation() }
@@ -73,21 +75,25 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             _ = self?.collect()
         }
 
-        speedControl = segmented(from: MatrixRainSettings.speedOptions.map(\.label))
+        speedControl = segmented(from: Cyph3rfallSettings.speedOptions.map(\.label))
         speedControl.target = self
         speedControl.action = #selector(controlChanged(_:))
 
-        sizeControl = segmented(from: MatrixRainSettings.glyphSizeOptions.map(\.label))
+        sizeControl = segmented(from: Cyph3rfallSettings.glyphSizeOptions.map(\.label))
         sizeControl.target = self
         sizeControl.action = #selector(controlChanged(_:))
 
-        trailControl = segmented(from: MatrixRainSettings.trailLengthOptions.map(\.label))
+        trailControl = segmented(from: Cyph3rfallSettings.trailLengthOptions.map(\.label))
         trailControl.target = self
         trailControl.action = #selector(controlChanged(_:))
 
+        columnSpacingControl = segmented(from: Cyph3rfallSettings.columnSpacingOptions.map(\.label))
+        columnSpacingControl.target = self
+        columnSpacingControl.action = #selector(controlChanged(_:))
+
         densitySlider = NSSlider(value: 1.5,
-                                 minValue: MatrixRainSettings.densityRange.lowerBound,
-                                 maxValue: MatrixRainSettings.densityRange.upperBound,
+                                 minValue: Cyph3rfallSettings.densityRange.lowerBound,
+                                 maxValue: Cyph3rfallSettings.densityRange.upperBound,
                                  target: self, action: #selector(densityChanged(_:)))
         densitySlider.isContinuous = true
 
@@ -97,7 +103,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         densityValueLabel.widthAnchor.constraint(equalToConstant: 46).isActive = true
 
         colorControl = NSPopUpButton(frame: .zero, pullsDown: false)
-        for preset in MatrixRainSettings.ColorPreset.allCases {
+        for preset in Cyph3rfallSettings.ColorPreset.allCases {
             colorControl.addItem(withTitle: preset.label)
             colorControl.lastItem?.tag   = preset.rawValue
             colorControl.lastItem?.image = swatch(preset.foregroundColor)
@@ -119,7 +125,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
                                  target: self, action: #selector(clockToggled(_:)))
 
         clockFontControl = NSPopUpButton(frame: .zero, pullsDown: false)  // default selection set in populate()
-        for option in MatrixRainSettings.clockFontOptions {
+        for option in Cyph3rfallSettings.clockFontOptions {
             let item = NSMenuItem(title: option.label, action: nil, keyEquivalent: "")
             // Render each menu item in its own font so users can preview the style.
             if let f = NSFont(name: option.name, size: 13) {
@@ -131,7 +137,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         clockFontControl.target = self
         clockFontControl.action = #selector(controlChanged(_:))
 
-        let sizeRange = MatrixRainSettings.clockFontSizeRange
+        let sizeRange = Cyph3rfallSettings.clockFontSizeRange
         clockSizeSlider = NSSlider(value: 80,
                                    minValue: Double(sizeRange.lowerBound),
                                    maxValue: Double(sizeRange.upperBound),
@@ -146,6 +152,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         dateCheckbox = NSButton(checkboxWithTitle: "Show date below clock",
                                 target: self, action: #selector(controlChanged(_:)))
 
+        clockColorPresetCheckbox = NSButton(checkboxWithTitle: "Match clock colour to rain preset",
+                                            target: self, action: #selector(controlChanged(_:)))
+
         // ── Custom message ────────────────────────────────────────────────
 
         messageCheckbox = NSButton(checkboxWithTitle: "Show message overlay",
@@ -153,7 +162,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
         // Preset picker — selecting an item copies the preset into the text field.
         messagePresetControl = NSPopUpButton(frame: .zero, pullsDown: false)
-        for (i, preset) in MatrixRainSettings.messagePresets.enumerated() {
+        for (i, preset) in Cyph3rfallSettings.messagePresets.enumerated() {
             messagePresetControl.addItem(withTitle: preset)
             messagePresetControl.lastItem?.tag = i
         }
@@ -209,6 +218,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             densityRow(),
             row(label: "Glyph Size",   control: sizeControl),
             row(label: "Trail Length", control: trailControl),
+            row(label: "Columns",      control: columnSpacingControl),
             row(label: "Color",        control: colorControl),
             row(label: "Chromafall",   control: withInfo(
                 colorZonesCheckbox,
@@ -227,6 +237,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             row(label: "Font",         control: clockFontControl),
             clockSizeRow(),
             row(label: "Date",         control: dateCheckbox),
+            row(label: "Clock Colour", control: clockColorPresetCheckbox),
         ]
 
         let startBtn  = NSButton(title: "▶  Start Now", target: self, action: #selector(startNow))
@@ -267,7 +278,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
         // ── Live preview ──────────────────────────────────────────────
 
-        previewRainView = MatrixRainView(frame: .zero)
+        previewRainView = Cyph3rfallView(frame: .zero)
         previewRainView.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewRainView)
 
@@ -449,15 +460,16 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
     // MARK: - Populate / collect
 
-    private func populate(from s: MatrixRainSettings) {
+    private func populate(from s: Cyph3rfallSettings) {
         hotkeyRecorder.configure(
             keyCode:       s.hotkeyCode,
             modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(s.hotkeyModifiers)),
             character:     s.hotkeyCharacter)
 
-        speedControl.selectedSegment  = MatrixRainSettings.nearest(in: MatrixRainSettings.speedOptions,     to: s.speedMultiplier)
-        sizeControl.selectedSegment   = MatrixRainSettings.nearest(in: MatrixRainSettings.glyphSizeOptions, to: s.glyphSize)
-        trailControl.selectedSegment  = MatrixRainSettings.trailLengthOptions
+        speedControl.selectedSegment  = Cyph3rfallSettings.nearest(in: Cyph3rfallSettings.speedOptions,     to: s.speedMultiplier)
+        sizeControl.selectedSegment          = Cyph3rfallSettings.nearest(in: Cyph3rfallSettings.glyphSizeOptions, to: s.glyphSize)
+        columnSpacingControl.selectedSegment = s.columnSpacingIndex
+        trailControl.selectedSegment  = Cyph3rfallSettings.trailLengthOptions
             .enumerated()
             .min(by: { abs($0.element.value - s.trailLength) < abs($1.element.value - s.trailLength) })?
             .offset ?? 1
@@ -476,11 +488,12 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         syncPresetPopup(to: s.customMessage)
 
         // Clock
-        clockCheckbox.state   = s.showClock ? .on : .off
-        dateCheckbox.state    = s.showDate   ? .on : .off
+        clockCheckbox.state            = s.showClock              ? .on : .off
+        dateCheckbox.state             = s.showDate               ? .on : .off
+        clockColorPresetCheckbox.state = s.clockColorTiedToPreset ? .on : .off
         clockSizeSlider.doubleValue = Double(s.clockFontSize)
         clockSizeLabel.stringValue  = "\(Int(s.clockFontSize)) pt"
-        let fontIdx = MatrixRainSettings.clockFontOptions
+        let fontIdx = Cyph3rfallSettings.clockFontOptions
             .firstIndex(where: { $0.name == s.clockFontName }) ?? 0
         clockFontControl.selectItem(at: fontIdx)
         updateClockControlsEnabled(s.showClock)
@@ -488,13 +501,14 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         previewRainView?.settings = s
     }
 
-    private func collect() -> MatrixRainSettings {
+    private func collect() -> Cyph3rfallSettings {
         var s = originalSettings
-        s.speedMultiplier  = MatrixRainSettings.speedOptions[speedControl.selectedSegment].value
+        s.speedMultiplier  = Cyph3rfallSettings.speedOptions[speedControl.selectedSegment].value
         s.density          = densitySlider.doubleValue
-        s.glyphSize        = MatrixRainSettings.glyphSizeOptions[sizeControl.selectedSegment].value
-        s.trailLength      = MatrixRainSettings.trailLengthOptions[trailControl.selectedSegment].value
-        s.colorPreset      = MatrixRainSettings.ColorPreset(rawValue: colorControl.selectedTag()) ?? .matrixGreen
+        s.glyphSize          = Cyph3rfallSettings.glyphSizeOptions[sizeControl.selectedSegment].value
+        s.trailLength        = Cyph3rfallSettings.trailLengthOptions[trailControl.selectedSegment].value
+        s.columnSpacingIndex = columnSpacingControl.selectedSegment
+        s.colorPreset      = Cyph3rfallSettings.ColorPreset(rawValue: colorControl.selectedTag()) ?? .matrixGreen
         s.showGlow          = glowCheckbox.state       == .on
         s.colorZonesEnabled = colorZonesCheckbox.state == .on
         s.classicDenseMode  = denseCheckbox.state      == .on
@@ -504,12 +518,13 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         s.hotkeyCode       = hotkeyRecorder.keyCode
         s.hotkeyModifiers  = Int(hotkeyRecorder.modifierFlags.rawValue)
         s.hotkeyCharacter  = hotkeyRecorder.character
-        s.showClock        = clockCheckbox.state  == .on
-        s.showDate         = dateCheckbox.state   == .on
+        s.showClock              = clockCheckbox.state            == .on
+        s.showDate               = dateCheckbox.state             == .on
+        s.clockColorTiedToPreset = clockColorPresetCheckbox.state == .on
         s.clockFontSize    = CGFloat(clockSizeSlider.doubleValue)
         let fi = clockFontControl.indexOfSelectedItem
-        if fi >= 0 && fi < MatrixRainSettings.clockFontOptions.count {
-            s.clockFontName = MatrixRainSettings.clockFontOptions[fi].name
+        if fi >= 0 && fi < Cyph3rfallSettings.clockFontOptions.count {
+            s.clockFontName = Cyph3rfallSettings.clockFontOptions[fi].name
         }
         return s
     }
@@ -571,8 +586,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             // "Clear message" — wipe the text field.
             messageField.stringValue = ""
             updateMessageCount(0)
-        } else if tag >= 0, tag < MatrixRainSettings.messagePresets.count {
-            let preset = MatrixRainSettings.messagePresets[tag]
+        } else if tag >= 0, tag < Cyph3rfallSettings.messagePresets.count {
+            let preset = Cyph3rfallSettings.messagePresets[tag]
             messageField.stringValue = preset
             updateMessageCount(preset.count)
         }
@@ -583,7 +598,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     /// preset strings exactly. Call this whenever the text field changes so
     /// the two controls stay in sync.
     private func syncPresetPopup(to text: String) {
-        guard let idx = MatrixRainSettings.messagePresets.firstIndex(of: text) else { return }
+        guard let idx = Cyph3rfallSettings.messagePresets.firstIndex(of: text) else { return }
         messagePresetControl.selectItem(withTag: idx)
     }
 
@@ -599,10 +614,11 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     }
 
     private func updateClockControlsEnabled(_ enabled: Bool) {
-        clockFontControl.isEnabled = enabled
-        clockSizeSlider.isEnabled  = enabled
-        clockSizeLabel.isEnabled   = enabled
-        dateCheckbox.isEnabled     = enabled
+        clockFontControl.isEnabled         = enabled
+        clockSizeSlider.isEnabled          = enabled
+        clockSizeLabel.isEnabled           = enabled
+        dateCheckbox.isEnabled             = enabled
+        clockColorPresetCheckbox.isEnabled = enabled
     }
 
     private func densityText(_ value: Double) -> String {
@@ -675,7 +691,7 @@ private final class DensityTickBar: NSView {
         self.slider = slider
         super.init(frame: .zero)
 
-        let range  = MatrixRainSettings.densityRange          // 0.1 … 5.0
+        let range  = Cyph3rfallSettings.densityRange          // 0.1 … 5.0
         let span   = range.upperBound - range.lowerBound
         let stops: [(Double, String)] = [
             (1.0, "100%"), (2.0, "200%"), (3.0, "300%"), (4.0, "400%"), (5.0, "Max")

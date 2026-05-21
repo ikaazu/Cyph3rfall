@@ -9,7 +9,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Matrix Rain</string>
+	<string>Cyph3rfall</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
@@ -18,6 +18,6 @@
 	<string>1</string>
 	<!-- NSPrincipalClass must be the module-qualified Swift class name. -->
 	<key>NSPrincipalClass</key>
-	<string>MatrixRainSaver.MatrixRainSaverView</string>
+	<string>Cyph3rfall.Cyph3rfallSaverView</string>
 </dict>
 </plist>

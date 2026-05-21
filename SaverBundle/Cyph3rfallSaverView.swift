@@ -1,12 +1,12 @@
 import ScreenSaver
 
-/// ScreenSaverView subclass that wraps MatrixRainView.
+/// ScreenSaverView subclass that wraps Cyph3rfallView.
 ///
 /// macOS screensaver lifecycle notes:
 /// ─────────────────────────────────
-/// • The framework instantiates one MatrixRainSaverView per screen.
+/// • The framework instantiates one Cyph3rfallSaverView per screen.
 /// • startAnimation() / stopAnimation() must be idempotent.
-/// • animateOneFrame() is our heartbeat; we tick MatrixRainView from here
+/// • animateOneFrame() is our heartbeat; we tick Cyph3rfallView from here
 ///   rather than running a second timer inside the view.
 ///
 /// macOS 26 note — configureSheet:
@@ -15,12 +15,12 @@ import ScreenSaver
 /// a separate process from the Wallpaper/System Settings process that owns the
 /// "Screen Saver Options…" button. The XPC bridge that should relay configureSheet
 /// across that process boundary is not functional for third-party bundles.
-/// Settings are therefore written by MatrixRainTestApp into the installed .saver
+/// Settings are therefore written by Cyph3rfall into the installed .saver
 /// bundle's Resources folder (settings.plist), which this extension always has
-/// unconditional read access to via Bundle(for: MatrixRainSaverView.self).
-final class MatrixRainSaverView: ScreenSaverView {
+/// unconditional read access to via Bundle(for: Cyph3rfallSaverView.self).
+final class Cyph3rfallSaverView: ScreenSaverView {
 
-    private var rainView: MatrixRainView!
+    private var rainView: Cyph3rfallView!
 
     // MARK: - Init
 
@@ -37,11 +37,11 @@ final class MatrixRainSaverView: ScreenSaverView {
     private func setup(preview: Bool) {
         animationTimeInterval = 1.0 / 60.0
 
-        rainView = MatrixRainView(frame: bounds)
+        rainView = Cyph3rfallView(frame: bounds)
         rainView.autoresizingMask = [.width, .height]
 
-        let bundle = Bundle(for: MatrixRainSaverView.self)
-        var settings = MatrixRainSettings.load(from: bundle)
+        let bundle = Bundle(for: Cyph3rfallSaverView.self)
+        var settings = Cyph3rfallSettings.load(from: bundle)
 
         if preview {
             settings.glyphSize   = 9
@@ -58,8 +58,8 @@ final class MatrixRainSaverView: ScreenSaverView {
         super.startAnimation()
         // Reload settings each time the screensaver activates so changes
         // made in the test app take effect without restarting.
-        let bundle = Bundle(for: MatrixRainSaverView.self)
-        rainView.settings = MatrixRainSettings.load(from: bundle)
+        let bundle = Bundle(for: Cyph3rfallSaverView.self)
+        rainView.settings = Cyph3rfallSettings.load(from: bundle)
         rainView.startExternalAnimation()
     }
 

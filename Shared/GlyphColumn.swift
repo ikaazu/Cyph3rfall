@@ -60,7 +60,7 @@ final class GlyphColumn {
          x: CGFloat,
          viewHeight: CGFloat,
          cellSize: CGFloat,
-         settings: MatrixRainSettings) {
+         settings: Cyph3rfallSettings) {
 
         self.columnIndex = columnIndex
         self.x           = x
@@ -97,7 +97,7 @@ final class GlyphColumn {
         headY - CGFloat(trailLength - 1) * cellSize > viewHeight
     }
 
-    func reset(settings: MatrixRainSettings) {
+    func reset(settings: Cyph3rfallSettings) {
         trailLength      = max(4, settings.trailLength + Int.random(in: -6 ... 10))
         glyphs           = (0 ..< trailLength).map { _ in matrixGlyphPool.randomElement()! }
         brightnessJitter = (0 ..< trailLength).map { _ in CGFloat.random(in: 0.78 ... 1.22) }

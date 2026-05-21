@@ -8,13 +8,14 @@ import AppKit
 ///
 /// isFlipped = true so that y=0 is the top and y increases downward,
 /// matching the natural direction of the falling rain.
-final class MatrixRainView: NSView {
+final class Cyph3rfallView: NSView {
 
-    var settings = MatrixRainSettings.default {
+    var settings = Cyph3rfallSettings.default {
         didSet { rebuild() }
     }
 
     private var columns:      [GlyphColumn] = []
+    private var columnStep:   CGFloat       = 0   // horizontal distance between columns (< glyphSize)
     private var lastTickTime: CFTimeInterval = 0
 
     // Per-stream colours — one entry per element in `columns`, refreshed each
@@ -227,6 +228,13 @@ final class MatrixRainView: NSView {
         guard size.width > 0, size.height > 0 else { return }
 
         let cell = settings.glyphSize
+        // Column step — Wide uses full cell width, Narrow uses 75 % for a
+        // tighter look without the characters overlapping or being clipped.
+        let spacingOptions    = Cyph3rfallSettings.columnSpacingOptions
+        let spacingIdx        = max(0, min(settings.columnSpacingIndex, spacingOptions.count - 1))
+        let spacingMultiplier = spacingOptions[spacingIdx].multiplier
+        let colStep = ceil(cell * spacingMultiplier)
+        columnStep = colStep
         glyphFont = .monospacedSystemFont(ofSize: cell * 0.85, weight: .regular)
         sharedAttrs[.font] = glyphFont
 
@@ -255,14 +263,14 @@ final class MatrixRainView: NSView {
         // Density >1  = every slot gets floor(density) streams, with the
         //               fractional remainder as the probability of one extra.
         //               e.g. 1.6 → always 1 stream + 60 % chance of a 2nd.
-        let totalSlots = max(1, Int(size.width / cell))
+        let totalSlots = max(1, Int(size.width / colStep))
         let guaranteed = Int(effectiveDensity)              // streams always added
         let extraProb  = effectiveDensity - Double(guaranteed) // chance of +1 more
 
         rebuildMessageChars()
 
         columns = (0 ..< totalSlots).flatMap { i -> [GlyphColumn] in
-            let x = CGFloat(i) * cell
+            let x = CGFloat(i) * colStep
             var streams: [GlyphColumn] = []
             for _ in 0 ..< guaranteed {
                 streams.append(GlyphColumn(columnIndex: i, x: x,
@@ -300,7 +308,7 @@ final class MatrixRainView: NSView {
             let stream = (columnColors.isEmpty || i >= columnColors.count)
                 ? defaultStream
                 : columnColors[i]
-            drawColumn(col, ctx: ctx, cell: cell, stream: stream)
+            drawColumn(col, ctx: ctx, cell: cell, colStep: columnStep, stream: stream)
         }
 
         if !messageChars.isEmpty { drawMessage(ctx) }
@@ -310,6 +318,7 @@ final class MatrixRainView: NSView {
     private func drawColumn(_ col: GlyphColumn,
                             ctx: CGContext,
                             cell: CGFloat,
+                            colStep: CGFloat,
                             stream: StreamColor) {
 
         let viewH = bounds.height
@@ -323,7 +332,7 @@ final class MatrixRainView: NSView {
             let glyphTop = col.headY - CGFloat(i) * cell
             guard glyphTop + cell > 0 && glyphTop < viewH else { continue }
 
-            let rect = CGRect(x: col.x, y: glyphTop, width: cell, height: cell)
+            let rect = CGRect(x: col.x, y: glyphTop, width: colStep, height: cell)
 
             if i == 0 {
                 // ── Head glyph ── always full alpha.
@@ -381,7 +390,7 @@ final class MatrixRainView: NSView {
     }
 
     private static func randomStreamColor() -> StreamColor {
-        let preset = MatrixRainSettings.ColorPreset.allCases.randomElement()!
+        let preset = Cyph3rfallSettings.ColorPreset.allCases.randomElement()!
         return StreamColor(fg: preset.foregroundColor, head: preset.headColor)
     }
 
@@ -398,13 +407,14 @@ final class MatrixRainView: NSView {
             return
         }
 
-        let cell  = settings.glyphSize
-        let chars = Array(msg)
+        let cell    = settings.glyphSize
+        let colStep = columnStep > 0 ? columnStep : ceil(cell * 0.75)
+        let chars   = Array(msg)
 
         // Ideal centred left edge, then snap to the nearest column boundary so
         // every message character lands exactly on an existing rain column.
-        let idealStartX = (bounds.width - CGFloat(chars.count) * cell) / 2.0
-        let startCol    = Int((idealStartX / cell).rounded())
+        let idealStartX = (bounds.width - CGFloat(chars.count) * colStep) / 2.0
+        let startCol    = Int((idealStartX / colStep).rounded())
 
         // Vertical anchor: centre of the character cell sits at 2/3 height.
         let targetY = bounds.height * (2.0 / 3.0)
@@ -413,7 +423,7 @@ final class MatrixRainView: NSView {
         let oldChars = messageChars
         messageChars = chars.enumerated().map { i, char in
             let colIdx = startCol + i
-            let cx     = CGFloat(colIdx) * cell + cell / 2.0
+            let cx     = CGFloat(colIdx) * colStep + colStep / 2.0
             let old    = oldChars.first(where: { $0.columnIndex == colIdx })
             return MessageChar(char: char, x: cx, y: targetY,
                                columnIndex: colIdx, alpha: old?.alpha ?? 0.0)
@@ -562,8 +572,16 @@ final class MatrixRainView: NSView {
                           size: settings.clockFontSize)
                 ?? NSFont.systemFont(ofSize: settings.clockFontSize, weight: .thin)
 
-        let textColor = NSColor(calibratedWhite: 0.93, alpha: 0.62)
-        let glowColor = NSColor(calibratedWhite: 1.00, alpha: 0.28).cgColor
+        // Colour: either preset-matched or neutral white, depending on user setting.
+        let textColor: NSColor
+        let glowColor: CGColor
+        if settings.clockColorTiedToPreset {
+            textColor = settings.headColor.withAlphaComponent(0.82)
+            glowColor = settings.foregroundColor.withAlphaComponent(0.45).cgColor
+        } else {
+            textColor = NSColor(calibratedWhite: 0.93, alpha: 0.62)
+            glowColor = NSColor(calibratedWhite: 1.00, alpha: 0.28).cgColor
+        }
 
         let timeStr = NSAttributedString(string: cachedTimeString, attributes: [
             .font:            font,
@@ -589,9 +607,12 @@ final class MatrixRainView: NSView {
         let dateFontSize = settings.clockFontSize * 0.32
         let dateFont     = NSFont(name: settings.clockFontName, size: dateFontSize)
                         ?? NSFont.systemFont(ofSize: dateFontSize, weight: .thin)
+        let dateColor: NSColor = settings.clockColorTiedToPreset
+            ? settings.foregroundColor.withAlphaComponent(0.65)
+            : NSColor(calibratedWhite: 0.80, alpha: 0.52)
         let dateStr  = NSAttributedString(string: cachedDateString, attributes: [
             .font:            dateFont,
-            .foregroundColor: NSColor(calibratedWhite: 0.80, alpha: 0.52),
+            .foregroundColor: dateColor,
         ])
         let dateSize = dateStr.size()
 

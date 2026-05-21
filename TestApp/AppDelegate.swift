@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var fullScreen: FullScreenWindow?
     private var prefsController: PreferencesWindowController?
     private var aboutPanel: NSPanel?
-    private var settings = MatrixRainSettings.load()
+    private var settings = Cyph3rfallSettings.load()
     private let hotkeyManager = HotkeyManager()
 
     // MARK: - Lock state
@@ -481,7 +481,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Helpers
 
-    private func applyHotkey(from settings: MatrixRainSettings) {
+    private func applyHotkey(from settings: Cyph3rfallSettings) {
         guard settings.hotkeyCode >= 0 else { hotkeyManager.unregister(); return }
         let mods = NSEvent.ModifierFlags(rawValue: UInt(settings.hotkeyModifiers))
         hotkeyManager.update(keyCode: settings.hotkeyCode,

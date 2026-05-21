@@ -14,7 +14,7 @@ private final class KeyableWindow: NSWindow {
 final class FullScreenWindow {
 
     // Expose the primary rain view so AppDelegate can push settings updates.
-    private(set) var primaryRainView: MatrixRainView?
+    private(set) var primaryRainView: Cyph3rfallView?
 
     private var windows: [NSWindow] = []
     private var localMonitor:  Any?
@@ -34,7 +34,7 @@ final class FullScreenWindow {
 
     // MARK: - Public
 
-    func show(settings: MatrixRainSettings) {
+    func show(settings: Cyph3rfallSettings) {
         guard windows.isEmpty else { return }
 
         for (index, screen) in NSScreen.screens.enumerated() {
@@ -80,7 +80,7 @@ final class FullScreenWindow {
         }, completionHandler: { [weak self] in
             guard let self else { return }
             for win in self.windows {
-                (win.contentView?.subviews.first as? MatrixRainView)?.stopAnimation()
+                (win.contentView?.subviews.first as? Cyph3rfallView)?.stopAnimation()
                 win.orderOut(nil)
             }
             self.windows.removeAll()
@@ -93,7 +93,7 @@ final class FullScreenWindow {
     // MARK: - Private
 
     private func makeWindow(for screen: NSScreen,
-                            settings: MatrixRainSettings,
+                            settings: Cyph3rfallSettings,
                             isPrimary: Bool) -> NSWindow {
         let win = KeyableWindow(
             contentRect: screen.frame,
@@ -108,7 +108,7 @@ final class FullScreenWindow {
         win.collectionBehavior   = [.canJoinAllSpaces, .fullScreenAuxiliary]
         win.setFrame(screen.frame, display: false)
 
-        let rainView = MatrixRainView(frame: win.contentView!.bounds)
+        let rainView = Cyph3rfallView(frame: win.contentView!.bounds)
         rainView.autoresizingMask = [.width, .height]
         rainView.settings = settings
         win.contentView?.addSubview(rainView)

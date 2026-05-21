@@ -1,7 +1,7 @@
 import AppKit
 
 /// Central configuration for the Matrix rain effect.
-struct MatrixRainSettings {
+struct Cyph3rfallSettings {
 
     // --- Visual ---
     var glyphSize: CGFloat = 16
@@ -35,18 +35,22 @@ struct MatrixRainSettings {
     // --- Security ---
     var requirePassword: Bool = false
 
-    // --- Clock overlay ---
-    var showClock:     Bool    = false
-    var showDate:      Bool    = false
-    var clockFontName: String  = "Gill Sans"
-    var clockFontSize: CGFloat = 80
+    // --- Column spacing ---
+    var columnSpacingIndex: Int = 1   // 0 = Wide, 1 = Narrow
 
-    static let `default` = MatrixRainSettings()
+    // --- Clock overlay ---
+    var showClock:              Bool    = false
+    var showDate:               Bool    = false
+    var clockColorTiedToPreset: Bool    = false
+    var clockFontName:          String  = "Gill Sans"
+    var clockFontSize:          CGFloat = 80
+
+    static let `default` = Cyph3rfallSettings()
 }
 
 // MARK: - Color presets
 
-extension MatrixRainSettings {
+extension Cyph3rfallSettings {
 
     enum ColorPreset: Int, CaseIterable {
         case matrixGreen = 0
@@ -107,7 +111,7 @@ extension MatrixRainSettings {
 
 // MARK: - Preset option tables
 
-extension MatrixRainSettings {
+extension Cyph3rfallSettings {
 
     static let speedOptions: [(label: String, value: Double)] = [
         ("Slow", 0.5), ("Normal", 1.0), ("Fast", 2.0)
@@ -123,6 +127,11 @@ extension MatrixRainSettings {
 
     static let trailLengthOptions: [(label: String, value: Int)] = [
         ("Short", 12), ("Normal", 22), ("Long", 35)
+    ]
+
+    /// Column spacing multiplier — fraction of glyph cell used as horizontal step.
+    static let columnSpacingOptions: [(label: String, multiplier: CGFloat)] = [
+        ("Wide", 1.00), ("Narrow", 0.75)
     ]
 
     /// Fonts offered in the clock font picker.
