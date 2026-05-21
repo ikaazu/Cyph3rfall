@@ -624,10 +624,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Returns true if `candidate` is a higher version number than `current`.
+    ///
+    /// Compares each dot-separated component as a decimal number, so "1.1"
+    /// correctly sorts above "1.02" (second component: 1 > 0, not 1 vs 2).
+    /// Components with leading zeros (e.g. "02") are treated as "0.2" —
+    /// i.e. split into their individual digits — matching the versioning scheme
+    /// used by this app (1.0 → 1.01 → 1.02 → 1.1).
     private func isNewerVersion(_ candidate: String, than current: String) -> Bool {
-        let lhs = candidate.split(separator: ".").compactMap { Int($0) }
-        let rhs  = current.split(separator: ".").compactMap { Int($0) }
-        let len  = max(lhs.count, rhs.count)
+        func components(_ v: String) -> [Int] {
+            v.split(separator: ".").flatMap { part -> [Int] in
+                guard let n = Int(part) else { return [] }
+                // "02" → treat as minor=0, patch=2 so 1.02 sorts below 1.1
+                if part.count > 1 && part.hasPrefix("0") {
+                    return part.map { Int(String($0))! }
+                }
+                return [n]
+            }
+        }
+        let lhs = components(candidate)
+        let rhs = components(current)
+        let len = max(lhs.count, rhs.count)
         for i in 0 ..< len {
             let l = i < lhs.count ? lhs[i] : 0
             let r = i < rhs.count ? rhs[i] : 0
