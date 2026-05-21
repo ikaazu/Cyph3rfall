@@ -23,18 +23,22 @@ Built entirely with Swift and AppKit. No third-party dependencies, no screensave
 | 🎨 9 colour presets | Green, Amber, Cyan, White, Purple, Blue, Red, Orange, Pink |
 | 🌈 Chromafall | Per-stream random colours, re-randomised on each wrap |
 | 💬 Message overlay | A phrase that materialises character-by-character in the rain |
-| 🕐 Clock overlay | Time and date with custom font and slow drift |
+| 🕐 Clock overlay | Time and date with custom font, size, and slow drift |
 | 🔒 Password lock | Touch ID / Face ID / Apple Watch to dismiss |
 | ⚡️ Optimised rendering | Smooth at 60 fps at maximum density with Chromafall |
+| 🗂️ Tabbed settings | General, Message, Clock, and Import/Export tabs with live preview |
+| ⬛️ Column spacing | Wide or Narrow — Narrow packs columns 25% closer for denser rain |
+| 🎨 Clock colour presets | Optionally tie the clock colour to your active rain preset |
+| 💾 Settings backup | Export and import your configuration as a JSON file |
+| 🔄 Auto update check | Checks GitHub for new releases on launch; manual check in About |
 
 ## Installation
 
 1. Download `Cyph3rfall-v*.zip` from the [Releases page](https://github.com/ikaazu/Cyph3rfall/releases/latest)
 2. Unzip and drag **Cyph3rfall.app** to `/Applications`
-3. **Right-click → Open** on first launch to bypass Gatekeeper
-4. The **Ξ** icon appears in your menu bar
+3. Launch it — the **Ξ** icon appears in your menu bar
 
-> **Note:** Cyph3rfall is signed but not notarized through Apple's paid developer program. macOS will show a security prompt on the very first open — right-click the app and choose **Open** to approve it once.
+> **Note:** macOS may show a security prompt on the very first launch. If it does, right-click the app and choose **Open** to approve it once.
 
 ## Requirements
 
