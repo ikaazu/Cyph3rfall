@@ -10,6 +10,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var speedControl:      NSSegmentedControl!
     private var densitySlider:     NSSlider!
     private var densityValueLabel: NSTextField!
+    private var densityPerfNote:   NSTextField!
     private var sizeControl:          NSSegmentedControl!
     private var trailControl:         NSSegmentedControl!
     private var columnSpacingControl: NSSegmentedControl!
@@ -99,6 +100,11 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         densityValueLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         densityValueLabel.alignment = .right
         densityValueLabel.widthAnchor.constraint(equalToConstant: 46).isActive = true
+
+        densityPerfNote = NSTextField(labelWithString: "⚡ High density may affect performance.")
+        densityPerfNote.font      = .systemFont(ofSize: 11)
+        densityPerfNote.textColor = NSColor(calibratedRed: 0.85, green: 0.60, blue: 0.10, alpha: 1)
+        densityPerfNote.isHidden  = true   // shown only when density > 200 %
 
         colorControl = NSPopUpButton(frame: .zero, pullsDown: false)
         for preset in Cyph3rfallSettings.ColorPreset.allCases {
@@ -431,7 +437,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         return image
     }
 
-    private func densityRow() -> NSStackView {
+    private func densityRow() -> NSView {
         let lbl = NSTextField(labelWithString: "Density:")
         lbl.font = .systemFont(ofSize: NSFont.systemFontSize)
         lbl.alignment = .right
@@ -455,11 +461,30 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             tickBar.heightAnchor.constraint(equalToConstant: 14),
         ])
 
-        let h = NSStackView(views: [lbl, wrapper, densityValueLabel])
-        h.orientation = .horizontal
-        h.spacing     = 12
-        h.alignment   = .centerY
-        return h
+        let sliderRow = NSStackView(views: [lbl, wrapper, densityValueLabel])
+        sliderRow.orientation = .horizontal
+        sliderRow.spacing     = 12
+        sliderRow.alignment   = .centerY
+
+        // Performance note — indented to align with the slider, hidden until
+        // density exceeds 200 %.
+        densityPerfNote.translatesAutoresizingMaskIntoConstraints = false
+        let noteIndent: CGFloat = 82 + 12   // matches label width + spacing
+        let noteWrap = NSView()
+        noteWrap.translatesAutoresizingMaskIntoConstraints = false
+        noteWrap.addSubview(densityPerfNote)
+        NSLayoutConstraint.activate([
+            densityPerfNote.leadingAnchor.constraint(equalTo: noteWrap.leadingAnchor,
+                                                     constant: noteIndent),
+            densityPerfNote.topAnchor.constraint(equalTo: noteWrap.topAnchor),
+            densityPerfNote.bottomAnchor.constraint(equalTo: noteWrap.bottomAnchor),
+        ])
+
+        let col = NSStackView(views: [sliderRow, noteWrap])
+        col.orientation = .vertical
+        col.spacing     = 4
+        col.alignment   = .leading
+        return col
     }
 
     private func withInfo(_ control: NSView, tooltip: String) -> NSStackView {
@@ -617,6 +642,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             in: Cyph3rfallSettings.trailLengthOptions, to: s.trailLength)
         densitySlider.doubleValue     = s.density
         densityValueLabel.stringValue = densityText(s.density)
+        densityPerfNote.isHidden      = s.density <= 2.0
         colorControl.selectItem(withTag: s.colorPreset.rawValue)
         glowCheckbox.state       = s.showGlow         ? .on : .off
         colorZonesCheckbox.state = s.colorZonesEnabled ? .on : .off
@@ -678,7 +704,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     }
 
     @objc private func densityChanged(_ sender: NSSlider) {
-        densityValueLabel.stringValue = densityText(sender.doubleValue)
+        let value = sender.doubleValue
+        densityValueLabel.stringValue = densityText(value)
+        densityPerfNote.isHidden      = value <= 2.0
         previewRainView.settings = collect()
     }
 
@@ -746,6 +774,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         densitySlider.isEnabled     = enabled
         densityValueLabel.isEnabled = enabled
         trailControl.isEnabled      = enabled
+        // Hide the performance note when Classic Dense Mode overrides density.
+        if !enabled { densityPerfNote.isHidden = true }
     }
 
     private func updateClockControlsEnabled(_ enabled: Bool) {
