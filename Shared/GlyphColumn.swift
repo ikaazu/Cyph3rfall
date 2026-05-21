@@ -16,9 +16,9 @@ let matrixGlyphPool: [Character] = {
         if let scalar = Unicode.Scalar(cp) { katakana.append(Character(scalar)) }
     }
 
-    let symbols: [Character] = Array("!@#$%&*+-=<>?|\\/:~^".map { $0 })
-    let digits:  [Character] = Array("0123456789".map { $0 })
-    let latin:   [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ".map { $0 })
+    let symbols: [Character] = Array("!@#$%&*+-=<>?|\\/:~^")
+    let digits:  [Character] = Array("0123456789")
+    let latin:   [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
     // Weight: katakana ×4, symbols ×2, digits ×1, latin ×1
     return katakana + katakana + katakana + katakana
@@ -67,19 +67,20 @@ final class GlyphColumn {
         self.viewHeight  = viewHeight
         self.cellSize    = cellSize
 
-        trailLength      = max(4, settings.trailLength + Int.random(in: -6 ... 10))
-        glyphs           = (0 ..< trailLength).map { _ in matrixGlyphPool.randomElement()! }
-        brightnessJitter = (0 ..< trailLength).map { _ in CGFloat.random(in: 0.78 ... 1.22) }
         columnBrightness = CGFloat.random(in: 0.55 ... 1.00)
+        let tl           = max(4, settings.trailLength + Int.random(in: -6 ... 10))
+        trailLength      = tl
+        glyphs           = (0 ..< tl).map { _ in matrixGlyphPool.randomElement() ?? "｡" }
+        brightnessJitter = (0 ..< tl).map { _ in CGFloat.random(in: 0.78 ... 1.22) }
         speed            = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
-        headY            = -CGFloat.random(in: 0 ... viewHeight + cellSize * CGFloat(trailLength))
+        headY            = -CGFloat.random(in: 0 ... viewHeight + cellSize * CGFloat(tl))
     }
 
     func update(dt: Double) {
         headY += speed * CGFloat(dt)
 
         // Swap one random glyph per tick — the "living characters" effect.
-        glyphs[Int.random(in: 0 ..< glyphs.count)] = matrixGlyphPool.randomElement()!
+        glyphs[Int.random(in: 0 ..< glyphs.count)] = matrixGlyphPool.randomElement() ?? "｡"
 
         // Drift one brightness jitter value each tick.
         let ji = Int.random(in: 0 ..< brightnessJitter.count)
@@ -98,11 +99,22 @@ final class GlyphColumn {
     }
 
     func reset(settings: Cyph3rfallSettings) {
-        trailLength      = max(4, settings.trailLength + Int.random(in: -6 ... 10))
-        glyphs           = (0 ..< trailLength).map { _ in matrixGlyphPool.randomElement()! }
-        brightnessJitter = (0 ..< trailLength).map { _ in CGFloat.random(in: 0.78 ... 1.22) }
-        speed            = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
-        headY            = -cellSize * CGFloat.random(in: 1 ... 6)
-        flashTimer       = 0
+        let newLength = max(4, settings.trailLength + Int.random(in: -6 ... 10))
+        speed      = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
+        headY      = -cellSize * CGFloat.random(in: 1 ... 6)
+        flashTimer = 0
+
+        // Refill arrays in-place when trail length is unchanged — avoids heap allocation
+        // on the hot path (called every time a column wraps off the bottom of the screen).
+        if newLength == trailLength {
+            for i in glyphs.indices {
+                glyphs[i]           = matrixGlyphPool.randomElement() ?? "｡"
+                brightnessJitter[i] = CGFloat.random(in: 0.78 ... 1.22)
+            }
+        } else {
+            trailLength      = newLength
+            glyphs           = (0 ..< newLength).map { _ in matrixGlyphPool.randomElement() ?? "｡" }
+            brightnessJitter = (0 ..< newLength).map { _ in CGFloat.random(in: 0.78 ... 1.22) }
+        }
     }
 }

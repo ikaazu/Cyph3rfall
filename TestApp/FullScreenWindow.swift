@@ -108,10 +108,11 @@ final class FullScreenWindow {
         win.collectionBehavior   = [.canJoinAllSpaces, .fullScreenAuxiliary]
         win.setFrame(screen.frame, display: false)
 
-        let rainView = Cyph3rfallView(frame: win.contentView!.bounds)
+        guard let contentView = win.contentView else { return win }
+        let rainView = Cyph3rfallView(frame: contentView.bounds)
         rainView.autoresizingMask = [.width, .height]
         rainView.settings = settings
-        win.contentView?.addSubview(rainView)
+        contentView.addSubview(rainView)
         rainView.startAnimation()
 
         if isPrimary { primaryRainView = rainView }

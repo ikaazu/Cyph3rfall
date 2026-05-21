@@ -36,16 +36,21 @@ final class IdleWatcher {
         didFire = false
     }
 
+    // MARK: - Static helper
+
+    /// Returns seconds since any user input (keyboard, mouse, etc.).
+    /// Shared by IdleWatcher.check() and AppDelegate.startLockEligibilityTimer()
+    /// so the CGEventType magic constant lives in exactly one place.
+    static func currentIdleTime() -> TimeInterval {
+        // kCGAnyInputEventType = ~UInt32(0): sentinel that matches any event type.
+        let anyInput = CGEventType(rawValue: ~UInt32(0))!
+        return CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+    }
+
     // MARK: - Private
 
     private func check() {
-        // kCGAnyInputEventType == ~UInt32(0); gives seconds since any input.
-        let anyInput = CGEventType(rawValue: ~UInt32(0))!   // kCGAnyInputEventType
-        let idle = CGEventSource.secondsSinceLastEventType(
-            .combinedSessionState,
-            eventType: anyInput
-        )
-
+        let idle = IdleWatcher.currentIdleTime()
         if idle >= threshold && !didFire {
             didFire = true
             onIdle()

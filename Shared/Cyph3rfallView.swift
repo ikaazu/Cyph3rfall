@@ -11,7 +11,10 @@ import AppKit
 final class Cyph3rfallView: NSView {
 
     var settings = Cyph3rfallSettings.default {
-        didSet { rebuild() }
+        didSet {
+            lastBuiltSize = .zero   // ensure layout()'s size guard doesn't skip the rebuild
+            rebuild()
+        }
     }
 
     private var columns:      [GlyphColumn] = []
@@ -104,6 +107,27 @@ final class Cyph3rfallView: NSView {
 
     private var glyphFont: NSFont = .monospacedSystemFont(ofSize: 13, weight: .regular)
 
+    // ── Per-rebuild caches — avoids repeated allocations in the draw loop ────
+    // Updated at the end of rebuild() whenever settings or geometry change.
+    private var lastBuiltSize:           CGSize  = .zero
+    private var cachedBackgroundCGColor: CGColor = NSColor.black.cgColor
+    // Non-nil only when Chromafall is off; draw() falls back to creating one
+    // on-the-fly only in the (rare) case where it's still nil.
+    private var cachedDefaultStream:     StreamColor?
+    // Pre-computed glow colour for the message overlay (settings.foregroundColor @ 70 %).
+    private var cachedMessageGlowCG:     CGColor = NSColor.clear.cgColor
+
+    // Clock caches — font lookup by name is expensive; cache the NSFont objects
+    // and invalidate only when the relevant settings change.
+    private var cachedClockFont:      NSFont  = .systemFont(ofSize: 80,   weight: .thin)
+    private var cachedClockDateFont:  NSFont  = .systemFont(ofSize: 25.6, weight: .thin)
+    private var cachedClockGlowCG:    CGColor = NSColor.clear.cgColor
+    private var cachedClockTextColor: NSColor = .white
+    private var cachedClockDateColor: NSColor = .gray
+    // Per-second attributed-string cache — also invalidated by any settings change.
+    private var cachedTimeAttr: NSAttributedString?
+    private var cachedDateAttr: NSAttributedString?
+
     // MARK: - NSView
 
     override var isFlipped: Bool { true }
@@ -127,6 +151,11 @@ final class Cyph3rfallView: NSView {
 
     override func layout() {
         super.layout()
+        // Guard against redundant rebuilds during window-resize animations —
+        // rebuild() tears down and recreates every column, so only do it when
+        // the geometry has actually changed.
+        let sz = bounds.size
+        guard sz != lastBuiltSize else { return }
         rebuild()
     }
 
@@ -288,6 +317,37 @@ final class Cyph3rfallView: NSView {
         // Must be called after columns is built — sizes columnColors to match.
         rebuildColumnColors()
         lastTickTime = 0
+
+        // ── Refresh per-frame caches ─────────────────────────────────────────
+        // These values are read every frame in draw(); computing them once here
+        // (on settings/geometry change) avoids repeated allocations in the hot path.
+
+        cachedBackgroundCGColor = settings.backgroundColor.cgColor
+        cachedDefaultStream     = settings.colorZonesEnabled
+            ? nil
+            : StreamColor(fg: settings.foregroundColor, head: settings.headColor)
+        cachedMessageGlowCG     = settings.foregroundColor.withAlphaComponent(0.7).cgColor
+
+        // Clock fonts — NSFont(name:size:) scans the system font registry; cache the result.
+        cachedClockFont     = NSFont(name: settings.clockFontName, size: settings.clockFontSize)
+                           ?? NSFont.systemFont(ofSize: settings.clockFontSize, weight: .thin)
+        cachedClockDateFont = NSFont(name: settings.clockFontName, size: settings.clockFontSize * 0.32)
+                           ?? NSFont.systemFont(ofSize: settings.clockFontSize * 0.32, weight: .thin)
+        if settings.clockColorTiedToPreset {
+            cachedClockTextColor = settings.headColor.withAlphaComponent(0.82)
+            cachedClockDateColor = settings.foregroundColor.withAlphaComponent(0.65)
+            cachedClockGlowCG    = settings.foregroundColor.withAlphaComponent(0.45).cgColor
+        } else {
+            cachedClockTextColor = NSColor(calibratedWhite: 0.93, alpha: 0.62)
+            cachedClockDateColor = NSColor(calibratedWhite: 0.80, alpha: 0.52)
+            cachedClockGlowCG    = NSColor(calibratedWhite: 1.00, alpha: 0.28).cgColor
+        }
+        // Invalidate per-second attributed strings so drawClock() rebuilds them
+        // with the updated font, size, and colour.
+        cachedTimeAttr = nil
+        cachedDateAttr = nil
+
+        lastBuiltSize = size
     }
 
     // MARK: - Drawing
@@ -295,15 +355,16 @@ final class Cyph3rfallView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
 
-        ctx.setFillColor(settings.backgroundColor.cgColor)
+        ctx.setFillColor(cachedBackgroundCGColor)
         ctx.fill(bounds)
 
         let cell = settings.glyphSize
 
-        // Compute the default StreamColor once per frame (not inside the loop)
-        // so the CGColor bridging only happens once when Chromafall is off.
-        let defaultStream = StreamColor(fg: settings.foregroundColor,
-                                        head: settings.headColor)
+        // Use the cached default stream (pre-built in rebuild()); only fall back
+        // to constructing one if somehow the cache is missing (e.g. first draw
+        // before rebuild() has completed its cache pass).
+        let defaultStream = cachedDefaultStream
+                         ?? StreamColor(fg: settings.foregroundColor, head: settings.headColor)
         for (i, col) in columns.enumerated() {
             let stream = (columnColors.isEmpty || i >= columnColors.count)
                 ? defaultStream
@@ -390,7 +451,7 @@ final class Cyph3rfallView: NSView {
     }
 
     private static func randomStreamColor() -> StreamColor {
-        let preset = Cyph3rfallSettings.ColorPreset.allCases.randomElement()!
+        let preset = Cyph3rfallSettings.ColorPreset.allCases.randomElement() ?? .matrixGreen
         return StreamColor(fg: preset.foregroundColor, head: preset.headColor)
     }
 
@@ -515,12 +576,9 @@ final class Cyph3rfallView: NSView {
     /// Renders the message characters on top of the rain with brightness
     /// proportional to each character's current alpha.
     private func drawMessage(_ ctx: CGContext) {
-        let cell   = settings.glyphSize
-        // Cache solid colour references and CGColors once per draw call —
-        // no withAlphaComponent allocations inside the loop.
-        let headCol = settings.headColor        // solid NSColor, alpha=1
-        let fgCol   = settings.foregroundColor  // solid NSColor, alpha=1
-        let fgCG    = fgCol.cgColor             // bridged once; used for glow
+        let cell    = settings.glyphSize
+        let headCol = settings.headColor
+        let fgCol   = settings.foregroundColor
 
         for mc in messageChars {
             guard mc.alpha > 0.01 else { continue }
@@ -545,9 +603,9 @@ final class Cyph3rfallView: NSView {
             ctx.saveGState()
             ctx.setAlpha(drawAlpha)
             if settings.showGlow && mc.alpha > 0.4 {
-                // CGColor.copy(alpha:) is cheaper than constructing an NSColor.
-                ctx.setShadow(offset: .zero, blur: 12,
-                              color: fgCG.copy(alpha: mc.alpha * 0.7))
+                // cachedMessageGlowCG is foregroundColor @ 70 % alpha, pre-built
+                // in rebuild() — avoids a CGColor.copy(alpha:) allocation per character.
+                ctx.setShadow(offset: .zero, blur: 12, color: cachedMessageGlowCG)
             }
             drawGlyph(mc.char, in: rect, color: drawColor)
             ctx.restoreGState()
@@ -557,67 +615,54 @@ final class Cyph3rfallView: NSView {
     // MARK: - Clock overlay
 
     private func drawClock(_ ctx: CGContext) {
-        // Refresh cached strings at most once per second.
-        let now       = Date()
-        let second    = Calendar.current.component(.second, from: now)
-        let minute    = Calendar.current.component(.minute, from: now)
-        let uniqueSec = minute * 60 + second
+        // Refresh formatter output at most once per second.
+        let now   = Date()
+        let comps = Calendar.current.dateComponents([.minute, .second], from: now)
+        let uniqueSec = (comps.minute ?? 0) * 60 + (comps.second ?? 0)
         if uniqueSec != lastClockSecond {
             lastClockSecond  = uniqueSec
             cachedTimeString = clockTimeFmt.string(from: now)
             cachedDateString = clockDateFmt.string(from: now)
+            // String content changed — rebuild attributed strings next draw.
+            cachedTimeAttr = nil
+            cachedDateAttr = nil
         }
 
-        let font = NSFont(name: settings.clockFontName,
-                          size: settings.clockFontSize)
-                ?? NSFont.systemFont(ofSize: settings.clockFontSize, weight: .thin)
-
-        // Colour: either preset-matched or neutral white, depending on user setting.
-        let textColor: NSColor
-        let glowColor: CGColor
-        if settings.clockColorTiedToPreset {
-            textColor = settings.headColor.withAlphaComponent(0.82)
-            glowColor = settings.foregroundColor.withAlphaComponent(0.45).cgColor
-        } else {
-            textColor = NSColor(calibratedWhite: 0.93, alpha: 0.62)
-            glowColor = NSColor(calibratedWhite: 1.00, alpha: 0.28).cgColor
+        // Rebuild the attributed string if needed (new second, or settings changed).
+        // Fonts, colours, and glow colour are all pre-built in rebuild().
+        if cachedTimeAttr == nil {
+            cachedTimeAttr = NSAttributedString(string: cachedTimeString, attributes: [
+                .font: cachedClockFont, .foregroundColor: cachedClockTextColor,
+            ])
         }
-
-        let timeStr = NSAttributedString(string: cachedTimeString, attributes: [
-            .font:            font,
-            .foregroundColor: textColor,
-        ])
+        let timeStr  = cachedTimeAttr!
         let timeSize = timeStr.size()
 
         // Anchor: horizontal centre, vertical centre at 1/3 from top.
         // isFlipped = true → y increases downward, so 1/3 from top = bounds.height / 3.
         // clockDriftX/Y apply the slow burn-in-prevention offset.
         let clockCentreY = bounds.height / 3.0
-        let timeX = (bounds.width  - timeSize.width)  / 2 + clockDriftX
-        let timeY = clockCentreY - timeSize.height / 2    + clockDriftY
+        let timeX = (bounds.width - timeSize.width) / 2 + clockDriftX
+        let timeY = clockCentreY - timeSize.height / 2   + clockDriftY
 
         ctx.saveGState()
-        ctx.setShadow(offset: .zero, blur: 24, color: glowColor)
+        ctx.setShadow(offset: .zero, blur: 24, color: cachedClockGlowCG)
         timeStr.draw(at: NSPoint(x: timeX, y: timeY))
         ctx.restoreGState()
 
         guard settings.showDate else { return }
 
         // Date line — 32 % of clock size, slightly dimmer, 6 pt below the time.
-        let dateFontSize = settings.clockFontSize * 0.32
-        let dateFont     = NSFont(name: settings.clockFontName, size: dateFontSize)
-                        ?? NSFont.systemFont(ofSize: dateFontSize, weight: .thin)
-        let dateColor: NSColor = settings.clockColorTiedToPreset
-            ? settings.foregroundColor.withAlphaComponent(0.65)
-            : NSColor(calibratedWhite: 0.80, alpha: 0.52)
-        let dateStr  = NSAttributedString(string: cachedDateString, attributes: [
-            .font:            dateFont,
-            .foregroundColor: dateColor,
-        ])
+        if cachedDateAttr == nil {
+            cachedDateAttr = NSAttributedString(string: cachedDateString, attributes: [
+                .font: cachedClockDateFont, .foregroundColor: cachedClockDateColor,
+            ])
+        }
+        let dateStr  = cachedDateAttr!
         let dateSize = dateStr.size()
 
         ctx.saveGState()
-        ctx.setShadow(offset: .zero, blur: 14, color: glowColor)
+        ctx.setShadow(offset: .zero, blur: 14, color: cachedClockGlowCG)
         dateStr.draw(at: NSPoint(x: (bounds.width - dateSize.width) / 2 + clockDriftX,
                                  y: timeY + timeSize.height + 6))
         ctx.restoreGState()

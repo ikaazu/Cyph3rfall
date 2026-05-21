@@ -90,20 +90,21 @@ extension Cyph3rfallSettings {
 }
 
 // MARK: - Clamp helpers
+// Internal (not private) so Cyph3rfallSettings+Defaults can use the same extensions.
 
-private extension Double {
+extension Double {
     func clamped(to range: ClosedRange<Double>) -> Double {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
 
-private extension CGFloat {
+extension CGFloat {
     func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
 
-private extension Int {
+extension Int {
     func clamped(to range: ClosedRange<Int>) -> Int {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }

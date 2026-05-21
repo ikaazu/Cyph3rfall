@@ -75,16 +75,13 @@ extension Cyph3rfallSettings {
         }
         let rawSize = double(Key.clockFontSize)
         if rawSize > 0 {
-            s.clockFontSize = CGFloat(min(max(rawSize,
-                Double(Cyph3rfallSettings.clockFontSizeRange.lowerBound)),
-                Double(Cyph3rfallSettings.clockFontSizeRange.upperBound)))
+            s.clockFontSize = CGFloat(rawSize).clamped(to: Cyph3rfallSettings.clockFontSizeRange)
         }
 
         // Density stored as raw Double since the slider replaced the old index.
         let rawDensity = double(Key.density)
         if rawDensity > 0 {
-            s.density = min(max(rawDensity, Cyph3rfallSettings.densityRange.lowerBound),
-                            Cyph3rfallSettings.densityRange.upperBound)
+            s.density = rawDensity.clamped(to: Cyph3rfallSettings.densityRange)
         }
 
         s.messageEnabled = bool(Key.messageEnabled)
@@ -101,10 +98,8 @@ extension Cyph3rfallSettings {
     }
 
     private func saveToFile(_ url: URL) {
-        let trailIdx = Cyph3rfallSettings.trailLengthOptions
-            .enumerated()
-            .min(by: { abs($0.element.value - trailLength) < abs($1.element.value - trailLength) })?
-            .offset ?? 1
+        let trailIdx = Cyph3rfallSettings.nearest(
+            in: Cyph3rfallSettings.trailLengthOptions, to: trailLength)
 
         let dict: [String: Any] = [
             Key.speedIndex:         Cyph3rfallSettings.nearest(in: Cyph3rfallSettings.speedOptions,     to: speedMultiplier),
@@ -134,9 +129,3 @@ extension Cyph3rfallSettings {
     }
 }
 
-private extension Int {
-    func clamped(to range: Range<Int>) -> Int {
-        guard !range.isEmpty else { return self }
-        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound - 1)
-    }
-}

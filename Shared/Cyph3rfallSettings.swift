@@ -171,4 +171,10 @@ extension Cyph3rfallSettings {
             .min(by: { abs($0.element.value - current) < abs($1.element.value - current) })?
             .offset ?? 0
     }
+
+    static func nearest(in options: [(label: String, value: Int)], to current: Int) -> Int {
+        options.enumerated()
+            .min(by: { abs($0.element.value - current) < abs($1.element.value - current) })?
+            .offset ?? 0
+    }
 }

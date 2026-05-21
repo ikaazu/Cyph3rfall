@@ -25,10 +25,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// user's idle threshold has now been met, at which point lock arms itself.
     private var lockEligibilityTimer: Timer?
 
+    // MARK: - Constants
+
+    private static let idleTimeoutKey  = "idleTimeoutSeconds"
+    private static let websiteURL      = URL(string: "https://cyph3rfall.app")!
+    private static let emailURL        = URL(string: "mailto:dev@cyph3rfall.app")!
+    private static let releasesPageURL = URL(string: "https://github.com/ikaazu/Cyph3rfall/releases/latest")!
+
     // Persisted idle timeout in seconds; 0 = disabled.
     private var idleTimeout: TimeInterval {
-        get { UserDefaults.standard.double(forKey: "idleTimeoutSeconds") }
-        set { UserDefaults.standard.set(newValue, forKey: "idleTimeoutSeconds") }
+        get { UserDefaults.standard.double(forKey: Self.idleTimeoutKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.idleTimeoutKey) }
     }
 
     // MARK: - Launch
@@ -41,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .forEach { $0.terminate() }
 
         // First-run default: 5 minutes
-        if UserDefaults.standard.object(forKey: "idleTimeoutSeconds") == nil {
+        if UserDefaults.standard.object(forKey: Self.idleTimeoutKey) == nil {
             idleTimeout = 300
         }
 
@@ -310,22 +317,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openWebsite() {
-        NSWorkspace.shared.open(URL(string: "https://cyph3rfall.app")!)
+        NSWorkspace.shared.open(Self.websiteURL)
     }
 
     @objc private func openContactEmail() {
-        NSWorkspace.shared.open(URL(string: "mailto:dev@cyph3rfall.app")!)
+        NSWorkspace.shared.open(Self.emailURL)
     }
 
     /// Manual update check triggered from the About panel.
     /// Shows feedback in both the update-found and up-to-date cases.
     @objc private func checkForUpdatesManually() {
-        guard let url = URL(string: "https://api.github.com/repos/ikaazu/Cyph3rfall/releases/latest") else { return }
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2022-11-28",                  forHTTPHeaderField: "X-GitHub-Api-Version")
-
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+        URLSession.shared.dataTask(with: Self.makeGitHubReleaseRequest()) { [weak self] data, _, error in
             DispatchQueue.main.async {
                 guard let self else { return }
                 let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
@@ -335,7 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                    let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let tagName = json["tag_name"] as? String {
 
-                    let latest = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+                    let latest = Self.stripVersionTag(tagName)
 
                     if self.isNewerVersion(latest, than: current) {
                         self.updateAvailableVersion = latest
@@ -540,11 +542,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.lockEligibilityTimer?.invalidate()
                 return
             }
-            let idle = CGEventSource.secondsSinceLastEventType(
-                .combinedSessionState,
-                eventType: CGEventType(rawValue: ~UInt32(0))!
-            )
-            if idle >= self.idleTimeout {
+            if IdleWatcher.currentIdleTime() >= self.idleTimeout {
                 self.lockActive = true
                 self.lockEligibilityTimer?.invalidate()
                 self.lockEligibilityTimer = nil
@@ -593,22 +591,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Update check
 
-    private func checkForUpdates() {
-        guard let url = URL(string: "https://api.github.com/repos/ikaazu/Cyph3rfall/releases/latest") else { return }
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+    /// Builds the GitHub releases API request with correct caching and versioning headers.
+    private static func makeGitHubReleaseRequest() -> URLRequest {
+        let url = URL(string: "https://api.github.com/repos/ikaazu/Cyph3rfall/releases/latest")!
+        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        req.setValue("2022-11-28",                  forHTTPHeaderField: "X-GitHub-Api-Version")
+        return req
+    }
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+    /// Strips the leading "v" from a GitHub tag name (e.g. "v1.1" → "1.1").
+    private static func stripVersionTag(_ tag: String) -> String {
+        tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+    }
+
+    private func checkForUpdates() {
+        URLSession.shared.dataTask(with: Self.makeGitHubReleaseRequest()) { [weak self] data, _, error in
             guard let self, let data, error == nil,
-                  let json     = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let tagName  = json["tag_name"] as? String
+                  let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tagName = json["tag_name"] as? String
             else { return }
 
-            // Strip leading "v" — GitHub tags are "v1.1", bundle is "1.1".
-            let latest  = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+            let latest  = Self.stripVersionTag(tagName)
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-
             guard self.isNewerVersion(latest, than: current) else { return }
 
             DispatchQueue.main.async {
@@ -632,7 +637,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openReleasePage() {
-        NSWorkspace.shared.open(URL(string: "https://github.com/ikaazu/Cyph3rfall/releases/latest")!)
+        NSWorkspace.shared.open(Self.releasesPageURL)
     }
 
     // MARK: - Helpers

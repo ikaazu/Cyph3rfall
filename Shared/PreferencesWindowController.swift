@@ -613,10 +613,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         speedControl.selectedSegment  = Cyph3rfallSettings.nearest(in: Cyph3rfallSettings.speedOptions,     to: s.speedMultiplier)
         sizeControl.selectedSegment          = Cyph3rfallSettings.nearest(in: Cyph3rfallSettings.glyphSizeOptions, to: s.glyphSize)
         columnSpacingControl.selectedSegment = s.columnSpacingIndex
-        trailControl.selectedSegment  = Cyph3rfallSettings.trailLengthOptions
-            .enumerated()
-            .min(by: { abs($0.element.value - s.trailLength) < abs($1.element.value - s.trailLength) })?
-            .offset ?? 1
+        trailControl.selectedSegment  = Cyph3rfallSettings.nearest(
+            in: Cyph3rfallSettings.trailLengthOptions, to: s.trailLength)
         densitySlider.doubleValue     = s.density
         densityValueLabel.stringValue = densityText(s.density)
         colorControl.selectItem(withTag: s.colorPreset.rawValue)
