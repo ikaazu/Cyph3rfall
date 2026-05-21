@@ -197,7 +197,7 @@
       margin: 0 2rem;
     }
 
-    /* ── Settings screenshot ────────────────────────────── */
+    /* ── Settings screenshot gallery ───────────────────── */
     .screenshot-wrap {
       margin: 3rem auto 0;
       max-width: 780px;
@@ -212,6 +212,67 @@
       display: block;
       width: 100%;
       height: auto;
+    }
+
+    /* Tab strip above the screenshot */
+    .screenshot-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 3rem auto 0.75rem;
+      max-width: 780px;
+    }
+
+    .screenshot-tab {
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      border: 1px solid rgba(0, 224, 20, 0.25);
+      background: transparent;
+      color: rgba(0, 224, 20, 0.5);
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+    }
+
+    .screenshot-tab.active {
+      background: rgba(0, 224, 20, 0.12);
+      border-color: rgba(0, 224, 20, 0.55);
+      color: #00e014;
+    }
+
+    .screenshot-tab:hover:not(.active) {
+      border-color: rgba(0, 224, 20, 0.38);
+      color: rgba(0, 224, 20, 0.75);
+    }
+
+    .screenshot-gallery {
+      margin: 0 auto;
+      max-width: 780px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0, 224, 20, 0.15),
+                  0 8px 40px rgba(0, 0, 0, 0.6),
+                  0 0 60px rgba(0, 224, 20, 0.08);
+      position: relative;
+    }
+
+    .screenshot-gallery img {
+      display: block;
+      width: 100%;
+      height: auto;
+      position: absolute;
+      top: 0; left: 0;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      pointer-events: none;
+    }
+
+    .screenshot-gallery img.active {
+      opacity: 1;
+      position: relative;
+      pointer-events: auto;
     }
 
     /* ── Features grid ──────────────────────────────────── */
@@ -253,6 +314,41 @@
       color: var(--text-dim);
       line-height: 1.6;
     }
+
+    /* ── What's New ─────────────────────────────────────── */
+    .changelog {
+      margin-top: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .changelog-item {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      padding: 1.2rem 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 224, 20, 0.12);
+      background: rgba(0, 56, 5, 0.14);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .changelog-item:hover {
+      border-color: rgba(0, 224, 20, 0.28);
+      background: rgba(0, 56, 5, 0.24);
+    }
+
+    .changelog-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+    .changelog-title {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--head);
+      margin-bottom: 0.25rem;
+    }
+
+    .changelog-desc { font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; }
 
     /* ── About ──────────────────────────────────────────── */
     #about { background: rgba(0, 56, 5, 0.08); }
@@ -394,6 +490,7 @@
     <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
 
     <div class="hero-badges">
+      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.1 — Now Available</span>
       <span class="badge">Free &amp; Open Source</span>
       <span class="badge">Swift &amp; AppKit</span>
       <span class="badge">macOS 14+</span>
@@ -408,7 +505,7 @@
       </svg>
       Download Latest Release
     </a>
-    <p class="download-note">macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+    <p class="download-note">v1.1 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
   </div>
 
   <div class="scroll-hint">↓ &nbsp; scroll</div>
@@ -419,11 +516,22 @@
   <p class="section-label">Features</p>
   <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
 
-  <div class="screenshot-wrap">
-    <img
-      class="settings-screenshot"
-      src="settings-screenshot.png"
-      alt="Cyph3rfall Settings panel showing speed, density, colour, Chromafall, message overlay, lock, and clock options alongside a live preview of the rain.">
+  <div class="screenshot-tabs" role="tablist" aria-label="Settings tabs">
+    <button class="screenshot-tab active" onclick="showTab(0)" aria-selected="true">General</button>
+    <button class="screenshot-tab" onclick="showTab(1)" aria-selected="false">Message</button>
+    <button class="screenshot-tab" onclick="showTab(2)" aria-selected="false">Clock</button>
+    <button class="screenshot-tab" onclick="showTab(3)" aria-selected="false">Import/Export</button>
+  </div>
+
+  <div class="screenshot-gallery" id="screenshotGallery">
+    <img class="active" src="settings-screenshot.png"
+      alt="General tab — speed, density, glyph size, trail length, column spacing, colour preset, Chromafall, glow, dense mode, and password lock settings, with a live rain preview.">
+    <img src="settings-message.png"
+      alt="Message tab — show message overlay toggle, preset selector, and custom message text field.">
+    <img src="settings-clock.png"
+      alt="Clock tab — show clock overlay toggle, font picker, size slider, date toggle, and clock colour preset option.">
+    <img src="settings-importexport.png"
+      alt="Import/Export tab — Export Settings and Import Settings buttons for backing up and restoring your preferences.">
   </div>
 
   <div class="features-grid">
@@ -500,6 +608,90 @@
       <p class="feature-desc">Pure Swift and AppKit. No third-party dependencies, no screensaver framework workarounds. Just a native Mac app doing its thing.</p>
     </div>
 
+    <div class="feature-card">
+      <span class="feature-icon">🔄</span>
+      <div class="feature-title">Auto Update Check</div>
+      <p class="feature-desc">Checks GitHub for new releases on launch and shows a banner in the menu when one is available. Trigger a manual check any time from the About panel.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">⬛️</span>
+      <div class="feature-title">Column Spacing</div>
+      <p class="feature-desc">Switch between Wide and Narrow column density. Narrow packs columns 25% closer together for a denser, more intense rain effect.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🎨</span>
+      <div class="feature-title">Clock Colour Presets</div>
+      <p class="feature-desc">Optionally tie the clock overlay colour to your active rain preset. Toggle it on and the clock tints itself to match — toggle it off for the classic neutral white.</p>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">💾</span>
+      <div class="feature-title">Settings Backup</div>
+      <p class="feature-desc">Export your entire configuration to a JSON file and import it back any time. Great for backing up your setup or sharing settings between Macs.</p>
+    </div>
+
+  </div>
+
+  <!-- Chromafall showcase -->
+  <div class="screenshot-wrap" style="margin-top: 3rem;">
+    <img class="settings-screenshot" src="hero-chromafall.png"
+      alt="Cyph3rfall in Chromafall mode — every column in a different colour, with the clock overlay showing the time and date in the centre of the screen.">
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<!-- ══ WHAT'S NEW ════════════════════════════════════════════ -->
+<section id="whats-new">
+  <p class="section-label">What's New</p>
+  <h2 class="section-title">Version 1.1</h2>
+  <p class="section-body">A focused feature release adding new customisation options, smarter settings management, and a redesigned settings panel.</p>
+
+  <div class="changelog">
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🗂️</span>
+      <div>
+        <div class="changelog-title">Redesigned Settings Panel</div>
+        <p class="changelog-desc">Settings are now organised into tabs — General, Message, Clock, and Import/Export. Controls for disabled features are automatically grayed out, and tabs slide between pages with a smooth animation.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🔄</span>
+      <div>
+        <div class="changelog-title">Automatic Update Check</div>
+        <p class="changelog-desc">Cyph3rfall checks GitHub for new releases on every launch and shows a banner in the menu when one is available. You can also trigger a manual check from the About panel at any time.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">💾</span>
+      <div>
+        <div class="changelog-title">Export &amp; Import Settings</div>
+        <p class="changelog-desc">Save your entire configuration to a JSON file and restore it whenever you like. Visual settings are included; your password lock and keyboard shortcut are excluded for security.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">⬛️</span>
+      <div>
+        <div class="changelog-title">Column Spacing Control</div>
+        <p class="changelog-desc">New Wide / Narrow toggle in the General tab. Narrow packs columns 25% closer together for a denser, more intense rain — Wide restores the original spacing.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🎨</span>
+      <div>
+        <div class="changelog-title">Clock Colour Tied to Rain Preset</div>
+        <p class="changelog-desc">A new checkbox in the Clock tab tints the clock overlay to match your active colour preset — head colour for the time, foreground colour for the date. Toggle it off for the classic neutral white.</p>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -558,7 +750,7 @@
   </div>
 
   <div class="callout">
-    ⚠️ <strong>First-launch security prompt:</strong> Cyph3rfall is signed but not notarized through Apple's paid developer program. macOS will block it on the first open — right-click the app and choose <strong>Open</strong> to approve it. You will only need to do this once.
+    ⚠️ <strong>First-launch security prompt:</strong> macOS may block the app on first open — right-click and choose <strong>Open</strong> to approve it. You will only need to do this once.
   </div>
 
   <div class="callout" style="margin-top:1rem; border-color:rgba(0,224,20,0.2); background:rgba(0,56,5,0.15); color:var(--text);">
@@ -699,6 +891,21 @@
   resize();
   requestAnimationFrame(tick);
 })();
+</script>
+
+<script>
+// Screenshot tab switcher
+function showTab(index) {
+  const tabs  = document.querySelectorAll('.screenshot-tab');
+  const imgs  = document.querySelectorAll('#screenshotGallery img');
+  tabs.forEach((t, i) => {
+    t.classList.toggle('active', i === index);
+    t.setAttribute('aria-selected', i === index ? 'true' : 'false');
+  });
+  imgs.forEach((img, i) => {
+    img.classList.toggle('active', i === index);
+  });
+}
 </script>
 
 </body>
