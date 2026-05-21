@@ -36,7 +36,7 @@ struct Cyph3rfallSettings {
     var requirePassword: Bool = false
 
     // --- Column spacing ---
-    var columnSpacingIndex: Int = 1   // 0 = Wide, 1 = Narrow
+    var columnSpacingIndex: Int = 0   // 0 = Wide, 1 = Narrow
 
     // --- Clock overlay ---
     var showClock:              Bool    = false
