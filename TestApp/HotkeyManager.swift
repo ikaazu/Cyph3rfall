@@ -13,8 +13,22 @@ final class HotkeyManager {
 
     // MARK: - Registration
 
+    enum RegistrationError: LocalizedError {
+        case eventHandlerFailed(OSStatus)
+        case hotkeyFailed(OSStatus)
+
+        var errorDescription: String? {
+            switch self {
+            case .eventHandlerFailed(let status):
+                return "Could not install the keyboard shortcut handler. (OSStatus \(status))"
+            case .hotkeyFailed(let status):
+                return "That keyboard shortcut could not be registered. It may already be used by macOS or another app. (OSStatus \(status))"
+            }
+        }
+    }
+
     /// Register (or re-register) the hotkey. Call with keyCode = -1 to clear.
-    func update(keyCode: Int, carbonModifiers: UInt32) {
+    func update(keyCode: Int, carbonModifiers: UInt32) throws {
         unregister()
         guard keyCode >= 0 else { return }
 
@@ -24,7 +38,8 @@ final class HotkeyManager {
 
         // Pass self through userData — the C callback captures nothing directly.
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        InstallEventHandler(
+        var newEventHandlerRef: EventHandlerRef?
+        let handlerStatus = InstallEventHandler(
             GetApplicationEventTarget(),
             { _, _, userData -> OSStatus in
                 guard let ptr = userData else { return OSStatus(eventNotHandledErr) }
@@ -32,16 +47,27 @@ final class HotkeyManager {
                 DispatchQueue.main.async { mgr.onTriggered?() }
                 return noErr
             },
-            1, &spec, selfPtr, &eventHandlerRef)
+            1, &spec, selfPtr, &newEventHandlerRef)
+        guard handlerStatus == noErr else {
+            throw RegistrationError.eventHandlerFailed(handlerStatus)
+        }
 
         // Signature "CYRN" as a FourCharCode.
         let sig: FourCharCode = 0x4359_524E
         let hotKeyID = EventHotKeyID(signature: sig, id: 1)
-        RegisterEventHotKey(
+        var newHotKeyRef: EventHotKeyRef?
+        let hotkeyStatus = RegisterEventHotKey(
             UInt32(keyCode), carbonModifiers,
             hotKeyID,
             GetApplicationEventTarget(),
-            0, &hotKeyRef)
+            0, &newHotKeyRef)
+        guard hotkeyStatus == noErr else {
+            if let ref = newEventHandlerRef { RemoveEventHandler(ref) }
+            throw RegistrationError.hotkeyFailed(hotkeyStatus)
+        }
+
+        eventHandlerRef = newEventHandlerRef
+        hotKeyRef = newHotKeyRef
     }
 
     func unregister() {

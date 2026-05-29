@@ -400,12 +400,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             prefsController = PreferencesWindowController(settings: settings)
             prefsController?.onApply = { [weak self] newSettings in
                 guard let self else { return }
+                let previousSettings = self.settings
+                if self.hotkeyChanged(from: previousSettings, to: newSettings) {
+                    guard self.applyHotkey(from: newSettings) else {
+                        self.applyHotkey(from: previousSettings)
+                        self.prefsController?.refresh(from: previousSettings)
+                        return
+                    }
+                }
                 self.settings = newSettings
                 newSettings.save()
                 // Push live into any active full-screen window.
                 self.fullScreen?.primaryRainView?.settings = newSettings
-                // Re-register the global hotkey with any updated combo.
-                self.applyHotkey(from: newSettings)
             }
             prefsController?.onStartNow = { [weak self] in
                 self?.showScreensaver(manual: true)
@@ -425,12 +431,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Determine initial lock state.
         if manual {
-            // Manual start: lock is not active yet.
-            // It will arm once the user's idle threshold has been sitting idle
-            // for at least idleTimeout seconds (same rule as auto-activation).
-            lockActive = false
-            if settings.requirePassword && idleTimeout > 0 {
-                startLockEligibilityTimer()
+            // Manual start with a timed idle threshold arms the lock only after
+            // that same threshold elapses. If idle activation is disabled,
+            // requiring a password means the manual session locks immediately.
+            if settings.requirePassword {
+                if idleTimeout > 0 {
+                    lockActive = false
+                    startLockEligibilityTimer()
+                } else {
+                    lockActive = true
+                }
+            } else {
+                lockActive = false
             }
         } else {
             // Idle-triggered: threshold already met — arm lock immediately.
@@ -485,13 +497,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let context = LAContext()
         var error: NSError?
 
-        // Prefer Apple Watch unlock if the Watch app is paired and reachable;
-        // fall back to Touch ID / Face ID + password.
-        let policy: LAPolicy = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithWatch, error: &error)
-            ? .deviceOwnerAuthenticationWithWatch
-            : .deviceOwnerAuthentication
-
-        guard context.canEvaluatePolicy(policy, error: &error) else {
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
             // No auth mechanism available — just dismiss.
             isAuthenticating = false
             fullScreen?.dismiss()
@@ -499,13 +505,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         context.evaluatePolicy(
-            policy,
+            .deviceOwnerAuthentication,
             localizedReason: "Unlock Cyph3rfall"
         ) { [weak self] success, _ in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isAuthenticating = false
-                if success { self.fullScreen?.dismiss() }
+                if success {
+                    self.fullScreen?.dismiss()
+                }
                 // On failure or cancel: do nothing — rain stays visible.
             }
         }
@@ -657,11 +665,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Helpers
 
-    private func applyHotkey(from settings: Cyph3rfallSettings) {
-        guard settings.hotkeyCode >= 0 else { hotkeyManager.unregister(); return }
+    private func hotkeyChanged(from old: Cyph3rfallSettings,
+                               to new: Cyph3rfallSettings) -> Bool {
+        old.hotkeyCode      != new.hotkeyCode ||
+        old.hotkeyModifiers != new.hotkeyModifiers ||
+        old.hotkeyCharacter != new.hotkeyCharacter
+    }
+
+    @discardableResult
+    private func applyHotkey(from settings: Cyph3rfallSettings) -> Bool {
+        guard settings.hotkeyCode >= 0 else {
+            hotkeyManager.unregister()
+            return true
+        }
         let mods = NSEvent.ModifierFlags(rawValue: UInt(settings.hotkeyModifiers))
-        hotkeyManager.update(keyCode: settings.hotkeyCode,
-                             carbonModifiers: carbonModifiers(from: mods))
+        do {
+            try hotkeyManager.update(keyCode: settings.hotkeyCode,
+                                     carbonModifiers: carbonModifiers(from: mods))
+            return true
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Shortcut Not Available"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+            return false
+        }
     }
 
     private func applyIdleTimeout() {

@@ -104,7 +104,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         densityPerfNote = NSTextField(labelWithString: "⚡ High density may affect performance.")
         densityPerfNote.font      = .systemFont(ofSize: 11)
         densityPerfNote.textColor = NSColor(calibratedRed: 0.85, green: 0.60, blue: 0.10, alpha: 1)
-        densityPerfNote.isHidden  = true   // shown only when density > 200 %
+        densityPerfNote.isHidden  = true   // shown only when density > 151%
 
         colorControl = NSPopUpButton(frame: .zero, pullsDown: false)
         for preset in Cyph3rfallSettings.ColorPreset.allCases {
@@ -642,7 +642,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             in: Cyph3rfallSettings.trailLengthOptions, to: s.trailLength)
         densitySlider.doubleValue     = s.density
         densityValueLabel.stringValue = densityText(s.density)
-        densityPerfNote.isHidden      = s.density <= 2.0
+        densityPerfNote.isHidden      = s.density <= 1.51
         colorControl.selectItem(withTag: s.colorPreset.rawValue)
         glowCheckbox.state       = s.showGlow         ? .on : .off
         colorZonesCheckbox.state = s.colorZonesEnabled ? .on : .off
