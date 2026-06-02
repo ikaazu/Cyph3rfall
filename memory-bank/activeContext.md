@@ -1,7 +1,7 @@
 # Active Context — Cyph3rfall
 
 **Last Updated**: 2026-06-01  
-**Current State**: IDLE — performance optimisation shipped, testing in progress
+**Current State**: IDLE — performance optimisation complete and committed
 
 ---
 
@@ -33,24 +33,21 @@ Three performance changes landed in the same session (not yet committed to main)
 | Trail no longer fades | `NSImage.draw(in:)` ignores `ctx.setAlpha()` | Pass alpha via `fraction:` parameter |
 | Message characters upside down | `NSImage.draw()` doesn't respect flipped view | Add `respectFlipped: true, hints: nil` |
 
-### Pending: Commit & Push
+### Committed: e231195
 
-These changes are built and running but **not yet committed**. Next step after Mac Mini testing confirms no regressions:
+All three files committed and pushed. Verified on MacBook Pro M5:
+- No startup hesitation (prewarm working)
+- Trail fade correct (ctx.setAlpha works with CGContext)
+- Message overlay correct (per-glyph flip compensation fixes upside-down glyphs)
 
-```bash
-cd ~/MatrixRainSaver
-git add Shared/GlyphAtlas.swift Shared/Cyph3rfallView.swift Shared/GlyphColumn.swift
-git commit -m "Performance: glyph atlas, 30fps cap, halve mutation rate"
-git push
-```
+Mac Mini M4 testing to be completed when available.
 
 ---
 
 ## Open Questions
 
-- Does the 30fps cap feel smooth enough on the Mac Mini M4 connected to a 4K display?
-- Are there any visual regressions in Chromafall mode or with message/clock overlays on the Mac Mini?
-- Should the frame rate cap be user-configurable (60/30 fps toggle), or stay as a fixed internal constant?
+- Mac Mini M4 full test still pending (user is travelling)
+- Should the frame rate cap be user-configurable (60/30 fps toggle) or stay as a fixed internal constant?
 
 ---
 

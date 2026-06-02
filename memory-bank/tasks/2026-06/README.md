@@ -18,5 +18,7 @@ Performance overhaul — glyph atlas, frame rate cap, mutation rate reduction.
   - Mutation throttled to every 2 ticks via `mutationCounter`
 - ✅ Fixed: trail fade bug (NSImage ignores ctx.setAlpha)
 - ✅ Fixed: message characters upside down (NSImage needs respectFlipped: true)
-- ⏳ Testing on Mac Mini M4 — user sent debug build via AirDrop
-- ⬜ Commit and push after testing confirms no regressions
+- ✅ Fixed: NSImage.draw → CGImage + per-glyph saveGState/flip/restoreGState
+- ✅ Fixed: atlas pre-flip caused double-flip (removed; standard CGBitmapContext now)
+- ✅ Committed: e231195, pushed to main
+- ⏳ Mac Mini M4 full test pending (user travelling)
