@@ -53,6 +53,10 @@ final class GlyphColumn {
     // Flash countdown: while > 0 the head renders as pure white.
     var flashTimer: Int = 0
 
+    // Throttle glyph mutation to every 2 physics ticks — halves random work
+    // with no perceptible change to the "living characters" effect.
+    private var mutationCounter: Int = 0
+
     private let cellSize: CGFloat
     private let viewHeight: CGFloat
 
@@ -79,12 +83,15 @@ final class GlyphColumn {
     func update(dt: Double) {
         headY += speed * CGFloat(dt)
 
-        // Swap one random glyph per tick — the "living characters" effect.
-        glyphs[Int.random(in: 0 ..< glyphs.count)] = matrixGlyphPool.randomElement() ?? "｡"
-
-        // Drift one brightness jitter value each tick.
-        let ji = Int.random(in: 0 ..< brightnessJitter.count)
-        brightnessJitter[ji] = CGFloat.random(in: 0.78 ... 1.22)
+        // Mutate glyphs every 2 ticks — halves random work while keeping the
+        // "living characters" effect visually intact.
+        mutationCounter += 1
+        if mutationCounter >= 2 {
+            mutationCounter = 0
+            glyphs[Int.random(in: 0 ..< glyphs.count)] = matrixGlyphPool.randomElement() ?? "｡"
+            let ji = Int.random(in: 0 ..< brightnessJitter.count)
+            brightnessJitter[ji] = CGFloat.random(in: 0.78 ... 1.22)
+        }
 
         // White-hot flash: tick down the timer, or randomly trigger a new flash.
         if flashTimer > 0 {
@@ -100,9 +107,10 @@ final class GlyphColumn {
 
     func reset(settings: Cyph3rfallSettings) {
         let newLength = max(4, settings.trailLength + Int.random(in: -6 ... 10))
-        speed      = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
-        headY      = -cellSize * CGFloat.random(in: 1 ... 6)
-        flashTimer = 0
+        speed           = CGFloat.random(in: 60 ... 220) * CGFloat(settings.speedMultiplier)
+        headY           = -cellSize * CGFloat.random(in: 1 ... 6)
+        flashTimer      = 0
+        mutationCounter = 0
 
         // Refill arrays in-place when trail length is unchanged — avoids heap allocation
         // on the hot path (called every time a column wraps off the bottom of the screen).

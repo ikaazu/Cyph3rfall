@@ -12,6 +12,7 @@
 		30F4CC1A5A47A87BCEB52DCA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE17D61C9B6F2001A0D67BD6 /* Assets.xcassets */; };
 		36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */; };
 		3E6302C8C9861A62EDADDD0A /* Cyph3rfallSettings+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E948343CBE53F4F6FEEB06 /* Cyph3rfallSettings+JSON.swift */; };
+		51FC5E8119293EEC328B3960 /* GlyphAtlas.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7078AE173D63903A1368BE5 /* GlyphAtlas.swift */; };
 		536466C4D5B969794D251F8F /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8C4FE92A1CE9D616986722 /* main.swift */; };
 		58A7B76955EDA45D96BDDEF1 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */; };
 		5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */; };
@@ -42,6 +43,7 @@
 		A41C366544A47CA14DE69736 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A7BC6499A1695DA30E44264F /* FullScreenWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenWindow.swift; sourceTree = "<group>"; };
 		AC7D6497895BEEB20CA0CA75 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C7078AE173D63903A1368BE5 /* GlyphAtlas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphAtlas.swift; sourceTree = "<group>"; };
 		C795F9581D32C155F8AC258F /* Cyph3rfallSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cyph3rfallSettings.swift; sourceTree = "<group>"; };
 		CE17D61C9B6F2001A0D67BD6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD8C4FE92A1CE9D616986722 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 				4C68C7746627378F4777CCAF /* Cyph3rfallSettings+Defaults.swift */,
 				22E948343CBE53F4F6FEEB06 /* Cyph3rfallSettings+JSON.swift */,
 				0A0A683FFE30CA7415A3F472 /* Cyph3rfallView.swift */,
+				C7078AE173D63903A1368BE5 /* GlyphAtlas.swift */,
 				FECD733036FEEB8C762A1EC4 /* GlyphColumn.swift */,
 				41F24EA0C3BA91F0FB3BBEA6 /* HotkeyRecorderView.swift */,
 				21BC6D641812C830FB3F3E02 /* PreferencesWindowController.swift */,
@@ -197,6 +200,7 @@
 				5C81CFEF7A993F6A5CD98D56 /* Cyph3rfallSettings.swift in Sources */,
 				36A8FBA52FBC716FB8774821 /* Cyph3rfallView.swift in Sources */,
 				11E733FC67DE8C6E36914EFC /* FullScreenWindow.swift in Sources */,
+				51FC5E8119293EEC328B3960 /* GlyphAtlas.swift in Sources */,
 				FC144FBABBA0DBF7A9442EBC /* GlyphColumn.swift in Sources */,
 				055A8051A93ECE73A1C65E9B /* HotkeyManager.swift in Sources */,
 				58A7B76955EDA45D96BDDEF1 /* HotkeyRecorderView.swift in Sources */,

@@ -21,33 +21,37 @@ final class Cyph3rfallView: NSView {
     private var columnStep:   CGFloat       = 0   // horizontal distance between columns (< glyphSize)
     private var lastTickTime: CFTimeInterval = 0
 
+    // Frame rate cap — physics ticks every display link callback, but the view
+    // only redraws at this rate. 30 fps is imperceptible for rain and halves GPU work.
+    private var lastRenderTime:      CFTimeInterval = 0
+    private let targetFrameInterval: CFTimeInterval = 1.0 / 30.0
+
     // Per-stream colours — one entry per element in `columns`, refreshed each
     // time a stream resets off the bottom of the screen.
     private struct StreamColor {
-        let fg:     NSColor
-        let head:   NSColor
-        let fgCG:   CGColor   // pre-computed — avoids .cgColor per glyph
-        let headCG: CGColor
-        let glowCG: CGColor   // fg at 0.8 alpha, ready for setShadow
+        let fg:          NSColor
+        let head:        NSColor
+        let fgCG:        CGColor   // pre-computed — avoids .cgColor per glyph
+        let headCG:      CGColor
+        let glowCG:      CGColor   // fg at 0.8 alpha, ready for setShadow
+        let fgColorID:   Int       // atlas key: preset.rawValue * 2
+        let headColorID: Int       // atlas key: preset.rawValue * 2 + 1
 
-        init(fg: NSColor, head: NSColor) {
-            self.fg   = fg
-            self.head = head
-            fgCG      = fg.cgColor
-            headCG    = head.cgColor
-            glowCG    = fg.withAlphaComponent(0.8).cgColor
+        init(preset: Cyph3rfallSettings.ColorPreset) {
+            fg          = preset.foregroundColor
+            head        = preset.headColor
+            fgCG        = fg.cgColor
+            headCG      = head.cgColor
+            glowCG      = fg.withAlphaComponent(0.8).cgColor
+            fgColorID   = preset.rawValue * 2
+            headColorID = preset.rawValue * 2 + 1
         }
     }
     private var columnColors: [StreamColor] = []
 
-    // Shared draw attributes — .font is set once in rebuild(), .foregroundColor
-    // is updated inline per-glyph.  Avoids allocating a new NSAttributedString
-    // for every glyph (~5 000+/frame at typical densities).
-    private var sharedAttrs: [NSAttributedString.Key: Any] = [:]
-
-    // NSString cache for the finite glyph-pool set.  Populated once in rebuild()
-    // so String(char) → NSString bridging is not done thousands of times per frame.
-    private var glyphStringCache: [Character: NSString] = [:]
+    // Glyph atlas — pre-rendered (char, colorID) → NSImage bitmaps.
+    // Turns Core Text layout calls into bitmap blits in the draw loop.
+    private let glyphAtlas = GlyphAtlas()
 
     // Custom message overlay — each character has its own fade state.
     private struct MessageChar {
@@ -247,7 +251,12 @@ final class Cyph3rfallView: NSView {
             clockDriftY = CGFloat(sin(clockDriftElapsed / 157 * .pi) * 20)
         }
 
-        needsDisplay = true
+        // Only trigger a redraw when enough time has elapsed — caps render rate
+        // at 30 fps regardless of the display link's native refresh rate.
+        if time - lastRenderTime >= targetFrameInterval {
+            lastRenderTime = time
+            needsDisplay = true
+        }
     }
 
     // MARK: - Column management
@@ -265,17 +274,16 @@ final class Cyph3rfallView: NSView {
         let colStep = ceil(cell * spacingMultiplier)
         columnStep = colStep
         glyphFont = .monospacedSystemFont(ofSize: cell * 0.85, weight: .regular)
-        sharedAttrs[.font] = glyphFont
 
-        // Build NSString cache on first call (or when the pool changes — it doesn't).
-        if glyphStringCache.isEmpty {
-            var seen = Set<Character>()
-            for char in matrixGlyphPool {
-                if seen.insert(char).inserted {
-                    glyphStringCache[char] = String(char) as NSString
-                }
-            }
-        }
+        // Configure atlas for new cell size / font; invalidate on any other
+        // settings change (colour preset, etc.) so stale images don't linger.
+        // Then prewarm upfront so no lazy rendering happens during draw().
+        glyphAtlas.configure(cellSize: cell, font: glyphFont)
+        glyphAtlas.invalidate()
+        let presetsToWarm: [Cyph3rfallSettings.ColorPreset] = settings.colorZonesEnabled
+            ? Cyph3rfallSettings.ColorPreset.allCases
+            : [settings.colorPreset]
+        glyphAtlas.prewarm(presets: presetsToWarm, glyphs: matrixGlyphPool)
 
         // Classic dense mode overrides density and trail length.
         let effectiveDensity     = settings.classicDenseMode ? 1.0 : max(0.01, settings.density)
@@ -325,7 +333,7 @@ final class Cyph3rfallView: NSView {
         cachedBackgroundCGColor = settings.backgroundColor.cgColor
         cachedDefaultStream     = settings.colorZonesEnabled
             ? nil
-            : StreamColor(fg: settings.foregroundColor, head: settings.headColor)
+            : StreamColor(preset: settings.colorPreset)
         cachedMessageGlowCG     = settings.foregroundColor.withAlphaComponent(0.7).cgColor
 
         // Clock fonts — NSFont(name:size:) scans the system font registry; cache the result.
@@ -364,7 +372,7 @@ final class Cyph3rfallView: NSView {
         // to constructing one if somehow the cache is missing (e.g. first draw
         // before rebuild() has completed its cache pass).
         let defaultStream = cachedDefaultStream
-                         ?? StreamColor(fg: settings.foregroundColor, head: settings.headColor)
+                         ?? StreamColor(preset: settings.colorPreset)
         for (i, col) in columns.enumerated() {
             let stream = (columnColors.isEmpty || i >= columnColors.count)
                 ? defaultStream
@@ -385,8 +393,8 @@ final class Cyph3rfallView: NSView {
         let viewH = bounds.height
         let count = col.glyphs.count
 
-        // Track the context's global alpha so we only call setAlpha when it
-        // changes — redundant state-sets are cheap but still worth avoiding.
+        // Track ctx.setAlpha() state — only call when value changes.
+        // ctx.setAlpha() works correctly with ctx.draw(CGImage, in:).
         var currentAlpha: CGFloat = 1.0
 
         for i in 0 ..< count {
@@ -400,45 +408,53 @@ final class Cyph3rfallView: NSView {
                 if currentAlpha != 1.0 { ctx.setAlpha(1.0); currentAlpha = 1.0 }
 
                 if col.flashTimer > 0 {
-                    // White-hot flash — glowCG pre-computed as white @ 0.8.
                     if settings.showGlow {
                         ctx.saveGState()
                         ctx.setShadow(offset: .zero, blur: 10,
                                       color: CGColor(gray: 1.0, alpha: 0.8))
-                        drawGlyph(col.glyphs[0], in: rect, color: .white)
+                        drawGlyph(col.glyphs[0], in: rect,
+                                  colorID: GlyphAtlas.whiteID, color: .white, ctx: ctx)
                         ctx.restoreGState()
                     } else {
-                        drawGlyph(col.glyphs[0], in: rect, color: .white)
+                        drawGlyph(col.glyphs[0], in: rect,
+                                  colorID: GlyphAtlas.whiteID, color: .white, ctx: ctx)
                     }
                 } else if settings.showGlow {
                     ctx.saveGState()
                     ctx.setShadow(offset: .zero, blur: 10, color: stream.glowCG)
-                    drawGlyph(col.glyphs[0], in: rect, color: stream.head)
+                    drawGlyph(col.glyphs[0], in: rect,
+                              colorID: stream.headColorID, color: stream.head, ctx: ctx)
                     ctx.restoreGState()
                 } else {
-                    drawGlyph(col.glyphs[0], in: rect, color: stream.head)
+                    drawGlyph(col.glyphs[0], in: rect,
+                              colorID: stream.headColorID, color: stream.head, ctx: ctx)
                 }
             } else {
-                // ── Trail glyph ── use ctx.setAlpha() to avoid allocating a new
-                // NSColor via withAlphaComponent() for every glyph (~5 000+/frame).
+                // ── Trail glyph ── ctx.setAlpha() works correctly with CGImage draws.
                 let baseAlpha = max(0, pow(1.0 - CGFloat(i) / CGFloat(count), 2))
                 let jitter    = i < col.brightnessJitter.count ? col.brightnessJitter[i] : 1.0
                 let alpha     = min(1.0, baseAlpha * jitter * col.columnBrightness)
-
                 if alpha != currentAlpha { ctx.setAlpha(alpha); currentAlpha = alpha }
-                drawGlyph(col.glyphs[i], in: rect, color: stream.fg)
+                drawGlyph(col.glyphs[i], in: rect,
+                          colorID: stream.fgColorID, color: stream.fg, ctx: ctx)
             }
         }
 
-        // Restore the context's global alpha so subsequent draws are unaffected.
+        // Restore context alpha so subsequent draws (message, clock) are unaffected.
         if currentAlpha != 1.0 { ctx.setAlpha(1.0) }
     }
 
-    private func drawGlyph(_ char: Character, in rect: CGRect, color: NSColor) {
-        // Mutate the shared dict rather than allocating a new NSAttributedString.
-        sharedAttrs[.foregroundColor] = color
-        let s = glyphStringCache[char] ?? (String(char) as NSString)
-        s.draw(in: rect, withAttributes: sharedAttrs)
+    private func drawGlyph(_ char: Character, in rect: CGRect,
+                            colorID: Int, color: NSColor, ctx: CGContext) {
+        guard let image = glyphAtlas.image(for: char, colorID: colorID, color: color) else { return }
+        // CGImage drawn with ctx.draw() appears upside-down in a flipped NSView.
+        // Apply the standard CG flip compensation: translate to rect top-left,
+        // flip y, draw at origin. Pure CGContext math — no AppKit compositing.
+        ctx.saveGState()
+        ctx.translateBy(x: rect.minX, y: rect.minY + rect.height)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
+        ctx.restoreGState()
     }
 
     // MARK: - Per-stream colours
@@ -451,8 +467,7 @@ final class Cyph3rfallView: NSView {
     }
 
     private static func randomStreamColor() -> StreamColor {
-        let preset = Cyph3rfallSettings.ColorPreset.allCases.randomElement() ?? .matrixGreen
-        return StreamColor(fg: preset.foregroundColor, head: preset.headColor)
+        StreamColor(preset: Cyph3rfallSettings.ColorPreset.allCases.randomElement() ?? .matrixGreen)
     }
 
     // MARK: - Custom message overlay
@@ -576,23 +591,27 @@ final class Cyph3rfallView: NSView {
     /// Renders the message characters on top of the rain with brightness
     /// proportional to each character's current alpha.
     private func drawMessage(_ ctx: CGContext) {
-        let cell    = settings.glyphSize
-        let headCol = settings.headColor
-        let fgCol   = settings.foregroundColor
+        let cell        = settings.glyphSize
+        let headCol     = settings.headColor
+        let fgCol       = settings.foregroundColor
+        let headColorID = cachedDefaultStream?.headColorID ?? (settings.colorPreset.rawValue * 2 + 1)
+        let fgColorID   = cachedDefaultStream?.fgColorID   ?? (settings.colorPreset.rawValue * 2)
 
         for mc in messageChars {
             guard mc.alpha > 0.01 else { continue }
 
             // At full alpha use the bright head colour; as it fades shift toward
             // the trail colour so the character blends back into the rain.
-            // Alpha is applied via ctx.setAlpha() — no NSColor allocation needed.
             let drawColor: NSColor
+            let colorID:   Int
             let drawAlpha: CGFloat
             if mc.alpha > 0.5 {
                 drawColor = headCol
+                colorID   = headColorID
                 drawAlpha = mc.alpha
             } else {
                 drawColor = fgCol
+                colorID   = fgColorID
                 drawAlpha = min(1.0, mc.alpha * 1.4)
             }
 
@@ -603,11 +622,9 @@ final class Cyph3rfallView: NSView {
             ctx.saveGState()
             ctx.setAlpha(drawAlpha)
             if settings.showGlow && mc.alpha > 0.4 {
-                // cachedMessageGlowCG is foregroundColor @ 70 % alpha, pre-built
-                // in rebuild() — avoids a CGColor.copy(alpha:) allocation per character.
                 ctx.setShadow(offset: .zero, blur: 12, color: cachedMessageGlowCG)
             }
-            drawGlyph(mc.char, in: rect, color: drawColor)
+            drawGlyph(mc.char, in: rect, colorID: colorID, color: drawColor, ctx: ctx)
             ctx.restoreGState()
         }
     }
