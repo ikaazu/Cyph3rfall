@@ -46,29 +46,21 @@
 
 ---
 
-## Backlog (Prioritised)
+## Roadmap
 
-### 1. Auto-Updater
-In-app download + install + restart flow. Version label at top of menu transforms into "Update to vX.X" button when update available. Requires write permission to `/Applications`. Likely uses Sparkle framework (adds a dependency — needs decision).
+### v1.4
+- **Color cycle mode** — slow full-screen palette drift through all 9 presets, smooth interpolation between head/trail colours, configurable speed. Mutually exclusive with Chromafall. Name TBD (candidates: Prismafall, Spectrafall, Driftfall).
 
-### 2. UI & Performance Overhaul
-Combined task (HIG + settings redesign + full optimisation):
-- macOS HIG design pass (developer.apple.com/design)
-- Settings redesign: macOS-style sidebar navigation (replaces tab strip), coloured selected item, attached square preview panel
-- Optimise for all Apple Silicon: M1, M2, M3, M4, M5
-- Shared display link for multi-monitor
+### v1.5
+- **Auto-updater** — version label at top of menu transforms into "Update to vX.X" button when update available. In-app download + install + restart. Requires write permission to `/Applications`. Sparkle framework likely needed (adds a dependency — needs decision).
+- **"Start Now" shortcut display** — assigned global shortcut shown right-aligned on the Start Now menu item, matching standard macOS menu convention. Blank if no shortcut set.
+- **Branded DMG installer** — custom dark background with Cyph3rfall icon + Applications folder alias + drag instruction. Replaces current plain DMG.
 
-### 3. Color Cycle Mode
-Slow full-screen palette drift through all 9 presets. Smooth interpolation between head/trail colours. Configurable speed (time-per-colour). Mutually exclusive with Chromafall. Name TBD (candidates: Prismafall, Spectrafall, Driftfall).
+### v2.0
+- **UI & Performance overhaul** — macOS HIG design pass (developer.apple.com/design), settings redesigned as macOS-style sidebar with coloured selection and attached square preview panel, full optimisation pass targeting M1–M5.
 
-### 4. "Start Now" Shortcut Display
-Show currently assigned global shortcut right-aligned on the "Start Now" menu item, matching standard macOS menu convention. Blank if no shortcut set.
-
-### 5. Branded DMG Installer
-Custom dark background with Cyph3rfall icon + Applications folder alias + arrow/instruction. Replaces current plain DMG.
-
-### 6. Windows Companion App
-Tauri (Rust + Web Canvas) stack. Separate repo. Native Windows feel. Feature parity with macOS. After macOS feature set stabilises post v1.3+.
+### Post v2.0 (Separate Project)
+- **Windows companion app** — Tauri (Rust + Web Canvas), separate repo, native Windows feel, feature parity with macOS version.
 
 ---
 
