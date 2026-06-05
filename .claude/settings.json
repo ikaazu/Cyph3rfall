@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); echo \"$cmd\" | grep -qE 'git (commit|push)' || exit 0; hits=$(git diff --cached -U0 2>/dev/null | grep -E '^\\+[^+]' | grep -iE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|[a-z]{4}-[a-z]{4}-[a-z]{4}-[a-z]{4}' | head -3 || true); [ -n \"$hits\" ] && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Sensitive data pattern detected in staged changes (possible email or app-specific password). Review before committing.\"}}' || true"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
