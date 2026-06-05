@@ -16,6 +16,9 @@ final class FullScreenWindow {
     // Expose the primary rain view so AppDelegate can push settings updates.
     private(set) var primaryRainView: Cyph3rfallView?
 
+    // All rain views across every screen — used to stop animation reliably.
+    private var rainViews: [Cyph3rfallView] = []
+
     private var windows: [NSWindow] = []
     private var localMonitor:  Any?
     private var globalMonitor: Any?
@@ -72,19 +75,23 @@ final class FullScreenWindow {
         localMonitor  = nil
         globalMonitor = nil
 
-        // Fade out, then tear down in the completion handler.
+        // Stop all CVDisplayLinks immediately — don't wait for the fade completion
+        // handler, which can be skipped if self is released before it fires.
+        // The rain freezing during the 0.8 s fade is invisible since the window
+        // is fading to transparent.
+        rainViews.forEach { $0.stopAnimation() }
+        rainViews.removeAll()
+        primaryRainView = nil
+
+        // Fade out, then tear down windows in the completion handler.
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration       = 0.8
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             for win in windows { win.animator().alphaValue = 0 }
         }, completionHandler: { [weak self] in
             guard let self else { return }
-            for win in self.windows {
-                (win.contentView?.subviews.first as? Cyph3rfallView)?.stopAnimation()
-                win.orderOut(nil)
-            }
+            for win in self.windows { win.orderOut(nil) }
             self.windows.removeAll()
-            self.primaryRainView = nil
             NSCursor.unhide()
             self.onDismiss()
         })
@@ -116,6 +123,7 @@ final class FullScreenWindow {
         rainView.startAnimation()
 
         if isPrimary { primaryRainView = rainView }
+        rainViews.append(rainView)
 
         win.makeKeyAndOrderFront(nil)
         return win
