@@ -10,6 +10,10 @@ import AppKit
 /// matching the natural direction of the falling rain.
 final class Cyph3rfallView: NSView {
 
+    /// Set to true on the primary display's view so overlays (clock, message)
+    /// are suppressed on secondary displays when primaryDisplayOnly is enabled.
+    var isPrimaryDisplay: Bool = false
+
     var settings = Cyph3rfallSettings.default {
         didSet {
             lastBuiltSize = .zero   // ensure layout()'s size guard doesn't skip the rebuild
@@ -381,8 +385,9 @@ final class Cyph3rfallView: NSView {
             drawColumn(col, ctx: ctx, cell: cell, colStep: columnStep, stream: stream)
         }
 
-        if !messageChars.isEmpty { drawMessage(ctx) }
-        if settings.showClock    { drawClock(ctx) }
+        let showOverlays = !settings.primaryDisplayOnly || isPrimaryDisplay
+        if !messageChars.isEmpty && showOverlays { drawMessage(ctx) }
+        if settings.showClock    && showOverlays { drawClock(ctx) }
     }
 
     private func drawColumn(_ col: GlyphColumn,

@@ -18,7 +18,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var glowCheckbox:       NSButton!
     private var colorZonesCheckbox: NSButton!
     private var denseCheckbox:      NSButton!
-    private var lockCheckbox:      NSButton!
+    private var primaryDisplayOnlyCheckbox: NSButton!
+    private var lockCheckbox:              NSButton!
     private var clockCheckbox:     NSButton!
     private var clockFontControl:  NSPopUpButton!
     private var clockSizeSlider:   NSSlider!
@@ -187,6 +188,11 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         messageCountLabel.alignment = .right
         messageCountLabel.widthAnchor.constraint(equalToConstant: 30).isActive = true
 
+        // Display control
+        primaryDisplayOnlyCheckbox = NSButton(
+            checkboxWithTitle: "Show clock and message on main display only",
+            target: self, action: #selector(controlChanged(_:)))
+
         // Lock control
         lockCheckbox = NSButton(checkboxWithTitle: "Require password to dismiss",
                                 target: self, action: #selector(controlChanged(_:)))
@@ -217,6 +223,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
                 tooltip: "Gives every falling stream its own randomly chosen colour. The colour is re-picked each time a stream wraps from the bottom back to the top, so the screen is always in motion.")),
             row(label: "Glow",         control: glowCheckbox),
             row(label: "Dense Mode",   control: denseControl),
+            row(label: "Overlays",     control: primaryDisplayOnlyCheckbox),
             lockSep,
             row(label: "Lock",         control: lockControl),
         ])
@@ -647,6 +654,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         glowCheckbox.state       = s.showGlow         ? .on : .off
         colorZonesCheckbox.state = s.colorZonesEnabled ? .on : .off
         denseCheckbox.state      = s.classicDenseMode  ? .on : .off
+        primaryDisplayOnlyCheckbox.state = s.primaryDisplayOnly ? .on : .off
         lockCheckbox.state  = s.requirePassword   ? .on : .off
         updateDenseModeControlsEnabled(!s.classicDenseMode)
         messageCheckbox.state = s.messageEnabled ? .on : .off
@@ -680,7 +688,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         s.showGlow          = glowCheckbox.state       == .on
         s.colorZonesEnabled = colorZonesCheckbox.state == .on
         s.classicDenseMode  = denseCheckbox.state      == .on
-        s.requirePassword   = lockCheckbox.state  == .on
+        s.primaryDisplayOnly = primaryDisplayOnlyCheckbox.state == .on
+        s.requirePassword    = lockCheckbox.state == .on
         s.messageEnabled   = messageCheckbox.state == .on
         s.customMessage    = String(messageField.stringValue.uppercased().prefix(30))
         s.hotkeyCode       = hotkeyRecorder.keyCode

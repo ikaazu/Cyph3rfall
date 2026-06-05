@@ -23,6 +23,7 @@ extension Cyph3rfallSettings {
             "chromafall":           colorZonesEnabled,
             "classicDense":         classicDenseMode,
             "columnSpacing":        columnSpacingIndex,
+            "primaryDisplayOnly":   primaryDisplayOnly,
             "messageEnabled":       messageEnabled,
             "message":              customMessage,
             "showClock":            showClock,
@@ -69,7 +70,8 @@ extension Cyph3rfallSettings {
            let preset = ColorPreset(rawValue: v) { s.colorPreset = preset }
         if let v = bool("chromafall")     { s.colorZonesEnabled  = v }
         if let v = bool("classicDense")   { s.classicDenseMode   = v }
-        if let v = int("columnSpacing")   { s.columnSpacingIndex = v.clamped(to: 0 ..< columnSpacingOptions.count) }
+        if let v = int("columnSpacing")      { s.columnSpacingIndex  = v.clamped(to: 0 ..< columnSpacingOptions.count) }
+        if let v = bool("primaryDisplayOnly") { s.primaryDisplayOnly = v }
         if let v = bool("messageEnabled") { s.messageEnabled     = v }
         if let v = string("message")      { s.customMessage      = String(v.prefix(30)) }
         if let v = bool("showClock")      { s.showClock          = v }

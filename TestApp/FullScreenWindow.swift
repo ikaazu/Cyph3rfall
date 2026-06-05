@@ -122,7 +122,10 @@ final class FullScreenWindow {
         contentView.addSubview(rainView)
         rainView.startAnimation()
 
-        if isPrimary { primaryRainView = rainView }
+        if isPrimary {
+            primaryRainView = rainView
+            rainView.isPrimaryDisplay = true
+        }
         rainViews.append(rainView)
 
         win.makeKeyAndOrderFront(nil)

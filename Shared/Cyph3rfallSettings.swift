@@ -38,6 +38,9 @@ struct Cyph3rfallSettings {
     // --- Column spacing ---
     var columnSpacingIndex: Int = 0   // 0 = Wide, 1 = Narrow
 
+    // --- Display ---
+    var primaryDisplayOnly: Bool = false   // restrict clock/message overlays to main display
+
     // --- Clock overlay ---
     var showClock:              Bool    = false
     var showDate:               Bool    = false

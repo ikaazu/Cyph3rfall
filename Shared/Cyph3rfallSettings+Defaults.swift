@@ -12,7 +12,8 @@ extension Cyph3rfallSettings {
         static let classicDenseMode   = "classicDenseMode"
         static let colorZonesEnabled  = "colorZonesEnabled"
         static let requirePassword    = "requirePassword"
-        static let columnSpacingIndex = "columnSpacingIndex"
+        static let columnSpacingIndex  = "columnSpacingIndex"
+        static let primaryDisplayOnly  = "primaryDisplayOnly"
         static let showClock              = "showClock"
         static let showDate               = "showDate"
         static let clockColorTiedToPreset = "clockColorTiedToPreset"
@@ -67,6 +68,7 @@ extension Cyph3rfallSettings {
         s.colorZonesEnabled = bool(Key.colorZonesEnabled)
         s.requirePassword      = bool(Key.requirePassword)
         s.columnSpacingIndex   = int(Key.columnSpacingIndex).clamped(to: 0 ..< columnSpacingOptions.count)
+        s.primaryDisplayOnly   = bool(Key.primaryDisplayOnly)
         s.showClock              = bool(Key.showClock)
         s.showDate               = bool(Key.showDate)
         s.clockColorTiedToPreset = bool(Key.clockColorTiedToPreset)
@@ -111,7 +113,8 @@ extension Cyph3rfallSettings {
             Key.classicDenseMode:   classicDenseMode,
             Key.colorZonesEnabled:  colorZonesEnabled,
             Key.requirePassword:    requirePassword,
-            Key.columnSpacingIndex: columnSpacingIndex,
+            Key.columnSpacingIndex:  columnSpacingIndex,
+            Key.primaryDisplayOnly:  primaryDisplayOnly,
             Key.showClock:              showClock,
             Key.showDate:               showDate,
             Key.clockColorTiedToPreset: clockColorTiedToPreset,
