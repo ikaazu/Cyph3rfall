@@ -22,9 +22,10 @@ final class Cyph3rfallView: NSView {
     private var lastTickTime: CFTimeInterval = 0
 
     // Frame rate cap — physics ticks every display link callback, but the view
-    // only redraws at this rate. 30 fps is imperceptible for rain and halves GPU work.
+    // only redraws at this rate. 60 fps divides evenly into 60 Hz and 120 Hz
+    // displays; 30 fps caused uneven frame pacing on high-refresh monitors.
     private var lastRenderTime:      CFTimeInterval = 0
-    private let targetFrameInterval: CFTimeInterval = 1.0 / 30.0
+    private let targetFrameInterval: CFTimeInterval = 1.0 / 60.0
 
     // Per-stream colours — one entry per element in `columns`, refreshed each
     // time a stream resets off the bottom of the screen.
