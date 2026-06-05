@@ -314,6 +314,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         // ── Live preview ──────────────────────────────────────────────
 
         previewRainView = Cyph3rfallView(frame: .zero)
+        previewRainView.isPrimaryDisplay = true   // always show overlays in preview
         previewRainView.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewRainView)
 
