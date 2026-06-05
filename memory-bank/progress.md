@@ -35,12 +35,14 @@
 
 ## In Progress
 
-### Performance Optimisation (2026-06)
-- ✅ Glyph atlas (`GlyphAtlas.swift`) — bitmap blit instead of Core Text per glyph
-- ✅ 30fps frame cap (internal, time-based)
+### Performance Optimisation (2026-06) — COMPLETE
+- ✅ Glyph atlas (`GlyphAtlas.swift`) — CGImage bitmap blit instead of Core Text per glyph
+- ✅ Atlas pre-warmed in `rebuild()` — no cold-start jank on first frame
+- ✅ 60fps frame cap (raised from 30fps — 30fps caused judder on high-refresh displays)
 - ✅ Glyph mutation rate halved (every 2 ticks)
-- ⏳ Testing on Mac Mini M4 — awaiting confirmation
-- ⬜ Shared display link across views (multi-monitor CPU reduction)
+- ✅ CVDisplayLink leak fixed — CPU now drops to near zero after screensaver dismissal
+- ✅ Verified on Mac Mini M4: dual 4K + 1440p, smooth animation, CPU drops on dismiss
+- ⬜ Shared display link across views (multi-monitor — deferred, not needed after other fixes)
 
 ---
 

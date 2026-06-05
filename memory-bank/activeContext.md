@@ -1,7 +1,7 @@
 # Active Context — Cyph3rfall
 
 **Last Updated**: 2026-06-01  
-**Current State**: IDLE — performance optimisation complete and committed
+**Current State**: IDLE — v1.3 feature complete, ready to notarize and release
 
 ---
 
