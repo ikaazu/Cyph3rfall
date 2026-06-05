@@ -45,6 +45,15 @@ Built entirely with Swift and AppKit. No third-party dependencies, no screensave
 - macOS 14.0 Sonoma or later
 - Apple Silicon or Intel
 
+## Tested on
+
+| Device | Displays | Notes |
+|--------|----------|-------|
+| MacBook Pro M5 | Built-in display | Primary development machine |
+| Mac Mini M4 | 4K + 1440p high-refresh (dual display) | Performance and multi-monitor testing |
+
+Smooth 60 fps on both machines across single and dual-display configurations including high-refresh rate monitors.
+
 ## Building from source
 
 ```bash
