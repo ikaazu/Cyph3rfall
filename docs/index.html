@@ -490,7 +490,7 @@
     <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
 
     <div class="hero-badges">
-      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.2 — Now Available</span>
+      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.3 — Now Available</span>
       <span class="badge">Free &amp; Open Source</span>
       <span class="badge">Swift &amp; AppKit</span>
       <span class="badge">macOS 14+</span>
@@ -505,7 +505,7 @@
       </svg>
       Download Latest Release
     </a>
-    <p class="download-note">v1.2 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+    <p class="download-note">v1.3 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
   </div>
 
   <div class="scroll-hint">↓ &nbsp; scroll</div>
@@ -641,32 +641,40 @@
 <!-- ══ WHAT'S NEW ════════════════════════════════════════════ -->
 <section id="whats-new">
   <p class="section-label">What's New</p>
-  <h2 class="section-title">Version 1.2</h2>
-  <p class="section-body">The first fully notarized release — plus a focused set of improvements to customisation, performance, and settings.</p>
+  <h2 class="section-title">Version 1.3</h2>
+  <p class="section-body">A focused performance and reliability release — smoother animation, lower CPU, and better multi-monitor support.</p>
 
   <div class="changelog">
 
     <div class="changelog-item">
-      <span class="changelog-icon">✅</span>
-      <div>
-        <div class="changelog-title">Apple Notarized</div>
-        <p class="changelog-desc">Cyph3rfall is now notarized by Apple. No right-click workaround, no Gatekeeper warning — just download, drag to Applications, and run.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">⬛️</span>
-      <div>
-        <div class="changelog-title">Wide Column Spacing by Default</div>
-        <p class="changelog-desc">The default column layout is now Wide, giving the rain a more classic, open feel out of the box. Switch to Narrow in Settings for a denser effect.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
       <span class="changelog-icon">⚡️</span>
       <div>
-        <div class="changelog-title">Density Performance Warning</div>
-        <p class="changelog-desc">A warning note now appears in Settings when density exceeds 151%, letting you know that very high density may impact performance on some Macs.</p>
+        <div class="changelog-title">Faster Rendering</div>
+        <p class="changelog-desc">Glyphs are now pre-rendered into a bitmap atlas and drawn as GPU-accelerated image blits — eliminating per-frame Core Text layout calls. Smoother animation at all density settings.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🖥</span>
+      <div>
+        <div class="changelog-title">High-Refresh Display Support</div>
+        <p class="changelog-desc">Frame rate raised to 60fps. The previous 30fps cap caused uneven pacing on high-refresh monitors (144Hz, 165Hz), which appeared as choppiness. Now smooth on all display types.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🔧</span>
+      <div>
+        <div class="changelog-title">Background CPU Fix</div>
+        <p class="changelog-desc">Fixed a bug where the animation could continue running after the screensaver was dismissed, causing persistent high CPU usage. CPU now returns to near zero immediately on dismissal.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">🖥</span>
+      <div>
+        <div class="changelog-title">Overlays on Main Display Only</div>
+        <p class="changelog-desc">New toggle in Settings → General to restrict the clock and message overlays to your primary display. Secondary displays show rain only.</p>
       </div>
     </div>
 
@@ -749,7 +757,7 @@
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-text">
-        <strong>Download</strong> <code>Cyph3rfall-v1.2.dmg</code> from the
+        <strong>Download</strong> <code>Cyph3rfall-v1.3.dmg</code> from the
         <a href="https://github.com/ikaazu/Cyph3rfall/releases/latest" target="_blank" rel="noopener" style="color:var(--green-dim)">Releases page</a>.
       </div>
     </div>
