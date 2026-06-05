@@ -10,7 +10,7 @@ Team ID: GHXKLLWQPM
 
 ## Notarization Credentials
 
-- Apple ID: `greg@namenotrequired.com`
+- Apple ID: `YOUR_APPLE_ID`
 - Team ID: `GHXKLLWQPM`
 - App-specific password: stored in 1Password (not in repo or memory bank)
 
@@ -73,7 +73,7 @@ ditto -c -k --keepParent \
 ### 6. Notarize
 ```bash
 xcrun notarytool submit /tmp/Cyph3rfall-vX.X.zip \
-  --apple-id greg@namenotrequired.com \
+  --apple-id YOUR_APPLE_ID \
   --team-id GHXKLLWQPM \
   --password APP_SPECIFIC_PASSWORD \
   --wait
@@ -83,7 +83,7 @@ xcrun notarytool submit /tmp/Cyph3rfall-vX.X.zip \
 If not using --wait, poll with:
 ```bash
 xcrun notarytool info SUBMISSION_ID \
-  --apple-id greg@namenotrequired.com \
+  --apple-id YOUR_APPLE_ID \
   --team-id GHXKLLWQPM \
   --password APP_SPECIFIC_PASSWORD
 ```
@@ -142,7 +142,7 @@ gh release list
 
 # Check notarization history
 xcrun notarytool history \
-  --apple-id greg@namenotrequired.com \
+  --apple-id YOUR_APPLE_ID \
   --team-id GHXKLLWQPM \
   --password APP_SPECIFIC_PASSWORD
 ```
