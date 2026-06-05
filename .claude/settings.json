@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -q 'PreferencesWindowController' && echo '{\"systemMessage\":\"📸 PreferencesWindowController.swift was modified — remember to take new settings panel screenshots and update docs/index.html (settings-screenshot.png, settings-message.png, settings-clock.png, settings-importexport.png).\"}' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
