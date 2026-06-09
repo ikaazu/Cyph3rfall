@@ -23,6 +23,11 @@ struct Cyph3rfallSettings {
     var classicDenseMode:   Bool = false
     var colorZonesEnabled:  Bool = false
 
+    // --- Spectrafall (full-screen colour cycle) ---
+    // Mutually exclusive with Chromafall; resolveExclusiveModes() enforces it.
+    var spectrafallEnabled:    Bool = false
+    var spectrafallSpeedIndex: Int  = 1   // index into spectrafallSpeedOptions
+
     // --- Message ---
     var messageEnabled: Bool   = false
     var customMessage:  String = ""
@@ -136,6 +141,27 @@ extension Cyph3rfallSettings {
     static let columnSpacingOptions: [(label: String, multiplier: CGFloat)] = [
         ("Wide", 1.00), ("Narrow", 0.75)
     ]
+
+    /// Spectrafall cycle speed — seconds spent drifting from one preset to the
+    /// next. Full loop = secondsPerPreset × spectraCyclePath.count.
+    static let spectrafallSpeedOptions: [(label: String, secondsPerPreset: Double)] = [
+        ("Slow", 90), ("Normal", 45), ("Fast", 20)
+    ]
+
+    /// The Spectrafall traversal order — presets sorted by hue so adjacent
+    /// blends stay saturated and natural (red → orange → amber → green →
+    /// cyan → blue → purple → pink → wrap). White is excluded: a slow fade
+    /// to grayscale mid-cycle reads as a malfunction, not a feature.
+    static let spectraCyclePath: [ColorPreset] = [
+        .red, .orange, .amber, .matrixGreen, .cyan, .blue, .amethyst, .pink
+    ]
+
+    /// Spectrafall and Chromafall are mutually exclusive. One canonical rule,
+    /// applied everywhere settings enter the system (defaults load, JSON
+    /// import, UI collect): Spectrafall wins.
+    mutating func resolveExclusiveModes() {
+        if spectrafallEnabled { colorZonesEnabled = false }
+    }
 
     /// Fonts offered in the clock font picker.
     /// Every entry ships with macOS 14 Sonoma.

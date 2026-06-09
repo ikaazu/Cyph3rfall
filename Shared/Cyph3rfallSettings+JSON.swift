@@ -21,6 +21,8 @@ extension Cyph3rfallSettings {
             "showGlow":             showGlow,
             "colorPreset":          colorPreset.rawValue,
             "chromafall":           colorZonesEnabled,
+            "spectrafall":          spectrafallEnabled,
+            "spectrafallSpeed":     spectrafallSpeedIndex,
             "classicDense":         classicDenseMode,
             "columnSpacing":        columnSpacingIndex,
             "primaryDisplayOnly":   primaryDisplayOnly,
@@ -69,6 +71,10 @@ extension Cyph3rfallSettings {
         if let v = int("colorPreset"),
            let preset = ColorPreset(rawValue: v) { s.colorPreset = preset }
         if let v = bool("chromafall")     { s.colorZonesEnabled  = v }
+        if let v = bool("spectrafall")    { s.spectrafallEnabled = v }
+        if let v = int("spectrafallSpeed") {
+            s.spectrafallSpeedIndex = v.clamped(to: 0 ..< spectrafallSpeedOptions.count)
+        }
         if let v = bool("classicDense")   { s.classicDenseMode   = v }
         if let v = int("columnSpacing")      { s.columnSpacingIndex  = v.clamped(to: 0 ..< columnSpacingOptions.count) }
         if let v = bool("primaryDisplayOnly") { s.primaryDisplayOnly = v }
@@ -86,6 +92,10 @@ extension Cyph3rfallSettings {
         if let v = double("clockSize") {
             s.clockFontSize = CGFloat(v).clamped(to: clockFontSizeRange)
         }
+
+        // A hand-edited file can set both chromafall and spectrafall true —
+        // apply the same canonical precedence rule used everywhere else.
+        s.resolveExclusiveModes()
 
         return s
     }

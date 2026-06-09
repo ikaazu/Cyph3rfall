@@ -11,6 +11,8 @@ extension Cyph3rfallSettings {
         static let colorPresetIndex   = "colorPresetIndex"
         static let classicDenseMode   = "classicDenseMode"
         static let colorZonesEnabled  = "colorZonesEnabled"
+        static let spectrafallEnabled    = "spectrafallEnabled"
+        static let spectrafallSpeedIndex = "spectrafallSpeedIndex"
         static let requirePassword    = "requirePassword"
         static let columnSpacingIndex  = "columnSpacingIndex"
         static let primaryDisplayOnly  = "primaryDisplayOnly"
@@ -66,6 +68,10 @@ extension Cyph3rfallSettings {
                                 .clamped(to: 0 ..< ColorPreset.allCases.count)) ?? .matrixGreen
         s.classicDenseMode  = bool(Key.classicDenseMode)
         s.colorZonesEnabled = bool(Key.colorZonesEnabled)
+        s.spectrafallEnabled    = bool(Key.spectrafallEnabled)
+        s.spectrafallSpeedIndex = int(Key.spectrafallSpeedIndex)
+            .clamped(to: 0 ..< spectrafallSpeedOptions.count)
+        s.resolveExclusiveModes()
         s.requirePassword      = bool(Key.requirePassword)
         s.columnSpacingIndex   = int(Key.columnSpacingIndex).clamped(to: 0 ..< columnSpacingOptions.count)
         s.primaryDisplayOnly   = bool(Key.primaryDisplayOnly)
@@ -112,6 +118,8 @@ extension Cyph3rfallSettings {
             Key.colorPresetIndex:   colorPreset.rawValue,
             Key.classicDenseMode:   classicDenseMode,
             Key.colorZonesEnabled:  colorZonesEnabled,
+            Key.spectrafallEnabled:    spectrafallEnabled,
+            Key.spectrafallSpeedIndex: spectrafallSpeedIndex,
             Key.requirePassword:    requirePassword,
             Key.columnSpacingIndex:  columnSpacingIndex,
             Key.primaryDisplayOnly:  primaryDisplayOnly,

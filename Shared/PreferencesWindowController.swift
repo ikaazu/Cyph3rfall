@@ -17,6 +17,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var colorControl:      NSPopUpButton!
     private var glowCheckbox:       NSButton!
     private var colorZonesCheckbox: NSButton!
+    private var spectrafallCheckbox:     NSButton!
+    private var spectrafallSpeedControl: NSSegmentedControl!
     private var denseCheckbox:      NSButton!
     private var primaryDisplayOnlyCheckbox: NSButton!
     private var lockCheckbox:              NSButton!
@@ -119,7 +121,14 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
                                 target: self, action: #selector(controlChanged(_:)))
 
         colorZonesCheckbox = NSButton(checkboxWithTitle: "Enable Chromafall",
-                                      target: self, action: #selector(controlChanged(_:)))
+                                      target: self, action: #selector(chromafallToggled(_:)))
+
+        spectrafallCheckbox = NSButton(checkboxWithTitle: "Enable Spectrafall",
+                                       target: self, action: #selector(spectrafallToggled(_:)))
+
+        spectrafallSpeedControl = segmented(from: Cyph3rfallSettings.spectrafallSpeedOptions.map(\.label))
+        spectrafallSpeedControl.target = self
+        spectrafallSpeedControl.action = #selector(controlChanged(_:))
 
         denseCheckbox = NSButton(checkboxWithTitle: "Classic dense mode",
                                  target: self, action: #selector(denseModeToggled(_:)))
@@ -221,6 +230,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             row(label: "Color",        control: colorControl),
             row(label: "Chromafall",   control: withInfo(colorZonesCheckbox,
                 tooltip: "Gives every falling stream its own randomly chosen colour. The colour is re-picked each time a stream wraps from the bottom back to the top, so the screen is always in motion.")),
+            row(label: "Spectrafall",  control: withInfo(spectrafallCheckbox,
+                tooltip: "Slowly drifts the entire rain through every colour preset, blending smoothly from one to the next. The cycle starts from your selected colour. White is skipped to keep the rain saturated. Enabling Spectrafall turns off Chromafall — the two modes can't run together.")),
+            row(label: "Cycle Speed",  control: spectrafallSpeedControl),
             row(label: "Glow",         control: glowCheckbox),
             row(label: "Dense Mode",   control: denseControl),
             row(label: "Overlays",     control: primaryDisplayOnlyCheckbox),
@@ -315,6 +327,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
         previewRainView = Cyph3rfallView(frame: .zero)
         previewRainView.isPrimaryDisplay = true   // always show overlays in preview
+        // Run the Spectrafall cycle 24× faster in the preview so the colour
+        // drift is visible while configuring (Normal: full loop ≈ 15 s here).
+        previewRainView.spectraTimeScale = 24
         previewRainView.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewRainView)
 
@@ -654,6 +669,11 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         colorControl.selectItem(withTag: s.colorPreset.rawValue)
         glowCheckbox.state       = s.showGlow         ? .on : .off
         colorZonesCheckbox.state = s.colorZonesEnabled ? .on : .off
+        spectrafallCheckbox.state = s.spectrafallEnabled ? .on : .off
+        spectrafallSpeedControl.selectedSegment = max(0, min(
+            s.spectrafallSpeedIndex,
+            Cyph3rfallSettings.spectrafallSpeedOptions.count - 1))
+        spectrafallSpeedControl.isEnabled = s.spectrafallEnabled
         denseCheckbox.state      = s.classicDenseMode  ? .on : .off
         primaryDisplayOnlyCheckbox.state = s.primaryDisplayOnly ? .on : .off
         lockCheckbox.state  = s.requirePassword   ? .on : .off
@@ -688,6 +708,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         s.colorPreset      = Cyph3rfallSettings.ColorPreset(rawValue: colorControl.selectedTag()) ?? .matrixGreen
         s.showGlow          = glowCheckbox.state       == .on
         s.colorZonesEnabled = colorZonesCheckbox.state == .on
+        s.spectrafallEnabled    = spectrafallCheckbox.state == .on
+        s.spectrafallSpeedIndex = max(0, spectrafallSpeedControl.selectedSegment)
+        s.resolveExclusiveModes()
         s.classicDenseMode  = denseCheckbox.state      == .on
         s.primaryDisplayOnly = primaryDisplayOnlyCheckbox.state == .on
         s.requirePassword    = lockCheckbox.state == .on
@@ -710,6 +733,22 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     // MARK: - Actions
 
     @objc private func controlChanged(_ sender: Any) {
+        previewRainView.settings = collect()
+    }
+
+    @objc private func spectrafallToggled(_ sender: NSButton) {
+        if sender.state == .on {
+            colorZonesCheckbox.state = .off   // Spectrafall wins
+        }
+        spectrafallSpeedControl.isEnabled = sender.state == .on
+        previewRainView.settings = collect()
+    }
+
+    @objc private func chromafallToggled(_ sender: NSButton) {
+        if sender.state == .on {
+            spectrafallCheckbox.state = .off
+            spectrafallSpeedControl.isEnabled = false
+        }
         previewRainView.settings = collect()
     }
 

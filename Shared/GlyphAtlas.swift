@@ -17,6 +17,12 @@ final class GlyphAtlas {
 
     static let whiteID: Int = 18   // one slot beyond the 9-preset fg/head pairs
 
+    // Spectrafall cycle slots — re-rendered each time the quantized cycle
+    // colour advances. Kept separate from the preset IDs so invalidating
+    // them never touches the warm preset cache.
+    static let spectraFgID:   Int = 19
+    static let spectraHeadID: Int = 20
+
     private struct Key: Hashable {
         let char:    Character
         let colorID: Int
@@ -38,6 +44,25 @@ final class GlyphAtlas {
     /// Discard all cached images. Call when colour settings change.
     func invalidate() {
         cache.removeAll(keepingCapacity: true)
+    }
+
+    /// Discard cached images for specific colour IDs only — used by the
+    /// Spectrafall cycle so a colour step doesn't dump the whole atlas.
+    func invalidate(colorIDs: Set<Int>) {
+        for key in cache.keys where colorIDs.contains(key.colorID) {
+            cache.removeValue(forKey: key)
+        }
+    }
+
+    /// Pre-renders every unique glyph in a single colour. Used by the
+    /// Spectrafall cycle to warm its two slots after a colour step so the
+    /// next draw frame never falls back to lazy rendering.
+    func prewarm(colorID: Int, color: NSColor, glyphs: [Character]) {
+        var seen = Set<Character>()
+        for char in glyphs {
+            guard seen.insert(char).inserted else { continue }
+            _ = image(for: char, colorID: colorID, color: color)
+        }
     }
 
     /// Pre-renders all (char, colorID) pairs for the given presets upfront.

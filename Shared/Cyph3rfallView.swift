@@ -16,10 +16,35 @@ final class Cyph3rfallView: NSView {
 
     var settings = Cyph3rfallSettings.default {
         didSet {
+            // Fresh enable of Spectrafall: seed the cycle phase from the
+            // currently selected preset so the drift starts from the colour
+            // already on screen instead of jumping to red.
+            if settings.spectrafallEnabled && !oldValue.spectrafallEnabled {
+                let path = Cyph3rfallSettings.spectraCyclePath
+                let idx  = path.firstIndex(of: settings.colorPreset)
+                       ?? path.firstIndex(of: .matrixGreen) ?? 0
+                spectraPhase     = Double(idx)
+                lastSpectraQuant = -1   // force a colour refresh in rebuild()
+            }
             lastBuiltSize = .zero   // ensure layout()'s size guard doesn't skip the rebuild
             rebuild()
         }
     }
+
+    /// Multiplier on Spectrafall cycle advancement. The settings preview sets
+    /// this above 1 so the colour drift is visible while configuring; the
+    /// full-screen views leave it at 1.
+    var spectraTimeScale: Double = 1.0
+
+    // ── Spectrafall cycle state ──────────────────────────────────────────────
+    // spectraPhase ∈ [0, pathCount): fractional position along spectraCyclePath.
+    // The phase is quantized into discrete steps; atlas re-rendering happens
+    // only when the quantized step advances, keeping the per-frame draw path
+    // identical to the static-preset case.
+    private var spectraPhase:     Double = 0
+    private var lastSpectraQuant: Int    = -1
+    private var spectraStream:    StreamColor?
+    private static let spectraStepsPerSegment = 32
 
     private var columns:      [GlyphColumn] = []
     private var columnStep:   CGFloat       = 0   // horizontal distance between columns (< glyphSize)
@@ -50,6 +75,18 @@ final class Cyph3rfallView: NSView {
             glowCG      = fg.withAlphaComponent(0.8).cgColor
             fgColorID   = preset.rawValue * 2
             headColorID = preset.rawValue * 2 + 1
+        }
+
+        /// Explicit-colour init for the Spectrafall cycle, where the colours
+        /// are blended between presets rather than taken from one.
+        init(fg: NSColor, head: NSColor, fgColorID: Int, headColorID: Int) {
+            self.fg          = fg
+            self.head        = head
+            self.fgCG        = fg.cgColor
+            self.headCG      = head.cgColor
+            self.glowCG      = fg.withAlphaComponent(0.8).cgColor
+            self.fgColorID   = fgColorID
+            self.headColorID = headColorID
         }
     }
     private var columnColors: [StreamColor] = []
@@ -246,6 +283,12 @@ final class Cyph3rfallView: NSView {
             updateMessageChars(dt: dt)
         }
 
+        // Advance the Spectrafall colour cycle. Atlas work happens only when
+        // the quantized step changes (~every 0.5–2 s depending on speed).
+        if settings.spectrafallEnabled {
+            advanceSpectraCycle(dt: dt)
+        }
+
         // Advance clock drift — only costs two trig calls per frame.
         if settings.showClock {
             clockDriftElapsed += dt
@@ -360,6 +403,17 @@ final class Cyph3rfallView: NSView {
         cachedTimeAttr = nil
         cachedDateAttr = nil
 
+        // ── Spectrafall ──────────────────────────────────────────────────────
+        // Runs after the cache refresh above so the cycling colour overrides
+        // the static-preset message glow and clock colours when active.
+        if settings.spectrafallEnabled {
+            lastSpectraQuant = Int(spectraPhase * Double(Self.spectraStepsPerSegment))
+            refreshSpectraColors(quant: lastSpectraQuant)
+        } else {
+            spectraStream    = nil
+            lastSpectraQuant = -1
+        }
+
         lastBuiltSize = size
     }
 
@@ -378,10 +432,15 @@ final class Cyph3rfallView: NSView {
         // before rebuild() has completed its cache pass).
         let defaultStream = cachedDefaultStream
                          ?? StreamColor(preset: settings.colorPreset)
+        // When Spectrafall is active, every column draws in the current cycle
+        // colour — exclusivity with Chromafall is enforced in the settings
+        // model, and this guard also wins over any stale per-column colours.
+        let spectra = settings.spectrafallEnabled ? spectraStream : nil
         for (i, col) in columns.enumerated() {
-            let stream = (columnColors.isEmpty || i >= columnColors.count)
-                ? defaultStream
-                : columnColors[i]
+            let stream = spectra
+                ?? ((columnColors.isEmpty || i >= columnColors.count)
+                    ? defaultStream
+                    : columnColors[i])
             drawColumn(col, ctx: ctx, cell: cell, colStep: columnStep, stream: stream)
         }
 
@@ -474,6 +533,72 @@ final class Cyph3rfallView: NSView {
 
     private static func randomStreamColor() -> StreamColor {
         StreamColor(preset: Cyph3rfallSettings.ColorPreset.allCases.randomElement() ?? .matrixGreen)
+    }
+
+    // MARK: - Spectrafall colour cycle
+
+    /// Advances the cycle phase and, when the quantized step changes, triggers
+    /// a colour refresh. Called once per physics tick while Spectrafall is on.
+    private func advanceSpectraCycle(dt: Double) {
+        let options = Cyph3rfallSettings.spectrafallSpeedOptions
+        let idx     = max(0, min(settings.spectrafallSpeedIndex, options.count - 1))
+        let secondsPerPreset = options[idx].secondsPerPreset
+        let pathCount = Double(Cyph3rfallSettings.spectraCyclePath.count)
+
+        spectraPhase += (dt * spectraTimeScale) / secondsPerPreset
+        if spectraPhase >= pathCount {
+            spectraPhase -= pathCount * (spectraPhase / pathCount).rounded(.down)
+        }
+
+        let quant = Int(spectraPhase * Double(Self.spectraStepsPerSegment))
+        if quant != lastSpectraQuant {
+            lastSpectraQuant = quant
+            refreshSpectraColors(quant: quant)
+        }
+    }
+
+    /// Re-renders the two Spectrafall atlas slots in the blended colour for the
+    /// given quantized step, and keeps the message glow and (when tied to the
+    /// preset) clock colours in step with the cycle.
+    ///
+    /// Cost: ~230 small bitmap renders, only on step advance — never per frame.
+    /// The interpolation parameter is derived from the quantized step rather
+    /// than the raw phase so the rendered colour exactly matches the step.
+    private func refreshSpectraColors(quant: Int) {
+        let path  = Cyph3rfallSettings.spectraCyclePath
+        let steps = Self.spectraStepsPerSegment
+        guard !path.isEmpty, steps > 0 else { return }
+
+        let segment = (quant / steps) % path.count
+        let t       = CGFloat(quant % steps) / CGFloat(steps)
+
+        let from = path[segment]
+        let to   = path[(segment + 1) % path.count]
+
+        // Head and trail blend with the same t so the head stays a coordinated
+        // bright tint of the trail throughout every transition.
+        let fg   = from.foregroundColor.blended(withFraction: t, of: to.foregroundColor)
+                ?? from.foregroundColor
+        let head = from.headColor.blended(withFraction: t, of: to.headColor)
+                ?? from.headColor
+
+        glyphAtlas.invalidate(colorIDs: [GlyphAtlas.spectraFgID, GlyphAtlas.spectraHeadID])
+        glyphAtlas.prewarm(colorID: GlyphAtlas.spectraFgID,   color: fg,   glyphs: matrixGlyphPool)
+        glyphAtlas.prewarm(colorID: GlyphAtlas.spectraHeadID, color: head, glyphs: matrixGlyphPool)
+
+        spectraStream = StreamColor(fg: fg, head: head,
+                                    fgColorID:   GlyphAtlas.spectraFgID,
+                                    headColorID: GlyphAtlas.spectraHeadID)
+
+        // Dependent overlays follow the cycle.
+        cachedMessageGlowCG = fg.withAlphaComponent(0.7).cgColor
+        if settings.clockColorTiedToPreset {
+            cachedClockTextColor = head.withAlphaComponent(0.82)
+            cachedClockDateColor = fg.withAlphaComponent(0.65)
+            cachedClockGlowCG    = fg.withAlphaComponent(0.45).cgColor
+            cachedTimeAttr = nil
+            cachedDateAttr = nil
+        }
     }
 
     // MARK: - Custom message overlay
@@ -597,11 +722,18 @@ final class Cyph3rfallView: NSView {
     /// Renders the message characters on top of the rain with brightness
     /// proportional to each character's current alpha.
     private func drawMessage(_ ctx: CGContext) {
-        let cell        = settings.glyphSize
-        let headCol     = settings.headColor
-        let fgCol       = settings.foregroundColor
-        let headColorID = cachedDefaultStream?.headColorID ?? (settings.colorPreset.rawValue * 2 + 1)
-        let fgColorID   = cachedDefaultStream?.fgColorID   ?? (settings.colorPreset.rawValue * 2)
+        let cell = settings.glyphSize
+        // When Spectrafall is active the message follows the cycling colour;
+        // otherwise it uses the static preset as before.
+        let active      = settings.spectrafallEnabled ? spectraStream : nil
+        let headCol     = active?.head ?? settings.headColor
+        let fgCol       = active?.fg   ?? settings.foregroundColor
+        let headColorID = active?.headColorID
+                       ?? cachedDefaultStream?.headColorID
+                       ?? (settings.colorPreset.rawValue * 2 + 1)
+        let fgColorID   = active?.fgColorID
+                       ?? cachedDefaultStream?.fgColorID
+                       ?? (settings.colorPreset.rawValue * 2)
 
         for mc in messageChars {
             guard mc.alpha > 0.01 else { continue }
