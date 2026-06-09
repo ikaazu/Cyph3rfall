@@ -21,6 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isAuthenticating = false
     /// True when dismissal requires a successful auth challenge.
     private var lockActive = false
+    /// The in-flight LocalAuthentication context. Tracked so the safety valve
+    /// and wake handler can invalidate a stale prompt instead of letting its
+    /// completion fire later and dismiss a re-locked screensaver.
+    private var authContext: LAContext?
     /// Fires every 5 s during a manually-started session to check whether the
     /// user's idle threshold has now been met, at which point lock arms itself.
     private var lockEligibilityTimer: Timer?
@@ -458,6 +462,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.lockEligibilityTimer?.invalidate()
                 self.lockEligibilityTimer = nil
                 self.lockActive = false
+                self.authContext?.invalidate()
+                self.authContext = nil
                 self.isAuthenticating = false
                 self.fullScreen = nil
                 self.idleWatcher.resetIdleState()
@@ -489,18 +495,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Safety valve: if evaluatePolicy's completion block never fires for any
         // reason (sleep interruption, system hiccup, etc.) reset after 90 s so
         // the user can try again rather than being permanently locked out.
+        // Invalidate the stale context so its completion can never fire later
+        // and dismiss a screensaver that has since re-armed.
         DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
             guard let self, self.isAuthenticating else { return }
+            self.authContext?.invalidate()
+            self.authContext = nil
             self.isAuthenticating = false
         }
 
         let context = LAContext()
+        authContext = context
         var error: NSError?
 
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            // No auth mechanism available — just dismiss.
             isAuthenticating = false
-            fullScreen?.dismiss()
+            authContext = nil
+            if let laError = error as? LAError, laError.code == .passcodeNotSet {
+                // No password or biometrics exist on this Mac — the lock cannot
+                // verify anything, so dismiss rather than trap the user.
+                fullScreen?.dismiss()
+            }
+            // Any other (likely transient) failure: fail closed. The rain stays
+            // up and the next input event retries authentication.
             return
         }
 
@@ -510,6 +527,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] success, _ in
             DispatchQueue.main.async {
                 guard let self else { return }
+                // Ignore results from a context the safety valve or wake
+                // handler has already invalidated and replaced.
+                guard context === self.authContext else { return }
+                self.authContext = nil
                 self.isAuthenticating = false
                 if success {
                     self.fullScreen?.dismiss()
@@ -526,8 +547,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func systemDidWake(_ notification: Notification) {
         DispatchQueue.main.async {
             // Any LAContext created before sleep is now invalid — its completion
-            // block will never fire. Reset unconditionally so the user is never
-            // permanently blocked from dismissing the screensaver.
+            // block will never fire. Invalidate and reset unconditionally so the
+            // user is never permanently blocked from dismissing the screensaver.
+            self.authContext?.invalidate()
+            self.authContext = nil
             self.isAuthenticating = false
 
             // If the screensaver is still showing and the lock is armed, present
