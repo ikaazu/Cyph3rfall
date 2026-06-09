@@ -22,9 +22,10 @@ Built entirely with Swift and AppKit. No third-party dependencies, no screensave
 | 🖥 Multi-monitor | Covers every display with smooth fade in/out |
 | 🎨 9 colour presets | Green, Amber, Cyan, White, Purple, Blue, Red, Orange, Pink |
 | 🌈 Chromafall | Per-stream random colours, re-randomised on each wrap |
+| 🌅 Spectrafall | Full-screen palette drift through all colour presets, smooth interpolation, configurable speed |
 | 💬 Message overlay | A phrase that materialises character-by-character in the rain |
 | 🕐 Clock overlay | Time and date with custom font, size, and slow drift |
-| 🔒 Password lock | Touch ID / Face ID / Apple Watch to dismiss |
+| 🔒 Password lock | Touch ID / Face ID / Apple Watch to dismiss — a casual privacy lock, not a security boundary |
 | ⚡️ Optimised rendering | Smooth at 60 fps at maximum density with Chromafall |
 | 🗂️ Tabbed settings | General, Message, Clock, and Import/Export tabs with live preview |
 | ⬛️ Column spacing | Wide or Narrow — Narrow packs columns 25% closer for denser rain |

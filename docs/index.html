@@ -490,7 +490,7 @@
     <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
 
     <div class="hero-badges">
-      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.3 — Now Available</span>
+      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.4 — Now Available</span>
       <span class="badge">Free &amp; Open Source</span>
       <span class="badge">Swift &amp; AppKit</span>
       <span class="badge">macOS 14+</span>
@@ -505,7 +505,7 @@
       </svg>
       Download Latest Release
     </a>
-    <p class="download-note">v1.3 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+    <p class="download-note">v1.4 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
   </div>
 
   <div class="scroll-hint">↓ &nbsp; scroll</div>
@@ -514,80 +514,24 @@
 <!-- ══ WHAT'S NEW ════════════════════════════════════════════ -->
 <section id="whats-new">
   <p class="section-label">What's New</p>
-  <h2 class="section-title">Version 1.3</h2>
-  <p class="section-body">A focused performance and reliability release — smoother animation, lower CPU, and better multi-monitor support.</p>
+  <h2 class="section-title">Version 1.4</h2>
+  <p class="section-body">Spectrafall — a new colour cycle mode — plus reliability improvements to the password lock.</p>
 
   <div class="changelog">
 
     <div class="changelog-item">
-      <span class="changelog-icon">⚡️</span>
+      <span class="changelog-icon">🌈</span>
       <div>
-        <div class="changelog-title">Faster Rendering</div>
-        <p class="changelog-desc">Glyphs are now pre-rendered into a bitmap atlas and drawn as GPU-accelerated image blits — eliminating per-frame Core Text layout calls. Smoother animation at all density settings.</p>
+        <div class="changelog-title">Spectrafall</div>
+        <p class="changelog-desc">A new colour mode that slowly drifts the entire rain through every preset — red, orange, amber, green, cyan, blue, amethyst, and pink — blending smoothly from one to the next. The cycle starts from your currently selected colour so there's no jarring jump on enable. Three speeds: Slow, Normal, and Fast. Mutually exclusive with Chromafall. The clock and message overlays follow the cycling colour throughout.</p>
       </div>
     </div>
 
     <div class="changelog-item">
-      <span class="changelog-icon">🖥</span>
+      <span class="changelog-icon">🔒</span>
       <div>
-        <div class="changelog-title">High-Refresh Display Support</div>
-        <p class="changelog-desc">Frame rate raised to 60fps. The previous 30fps cap caused uneven pacing on high-refresh monitors (144Hz, 165Hz), which appeared as choppiness. Now smooth on all display types.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">🔧</span>
-      <div>
-        <div class="changelog-title">Background CPU Fix</div>
-        <p class="changelog-desc">Fixed a bug where the animation could continue running after the screensaver was dismissed, causing persistent high CPU usage. CPU now returns to near zero immediately on dismissal.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">🖥</span>
-      <div>
-        <div class="changelog-title">Overlays on Main Display Only</div>
-        <p class="changelog-desc">New toggle in Settings → General to restrict the clock and message overlays to your primary display. Secondary displays show rain only.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">🗂️</span>
-      <div>
-        <div class="changelog-title">Redesigned Settings Panel</div>
-        <p class="changelog-desc">Settings are now organised into tabs — General, Message, Clock, and Import/Export. Controls for disabled features are automatically grayed out, and tabs slide between pages with a smooth animation.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">🔄</span>
-      <div>
-        <div class="changelog-title">Automatic Update Check</div>
-        <p class="changelog-desc">Cyph3rfall checks GitHub for new releases on every launch and shows a banner in the menu when one is available. You can also trigger a manual check from the About panel at any time.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">💾</span>
-      <div>
-        <div class="changelog-title">Export &amp; Import Settings</div>
-        <p class="changelog-desc">Save your entire configuration to a JSON file and restore it whenever you like. Visual settings are included; your password lock and keyboard shortcut are excluded for security.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">⬛️</span>
-      <div>
-        <div class="changelog-title">Column Spacing Control</div>
-        <p class="changelog-desc">New Wide / Narrow toggle in the General tab. Narrow packs columns 25% closer together for a denser, more intense rain — Wide restores the original spacing.</p>
-      </div>
-    </div>
-
-    <div class="changelog-item">
-      <span class="changelog-icon">🎨</span>
-      <div>
-        <div class="changelog-title">Clock Colour Tied to Rain Preset</div>
-        <p class="changelog-desc">A new checkbox in the Clock tab tints the clock overlay to match your active colour preset — head colour for the time, foreground colour for the date. Toggle it off for the classic neutral white.</p>
+        <div class="changelog-title">Password Lock Hardening</div>
+        <p class="changelog-desc">Password lock now fails closed if authentication is unavailable — the screensaver stays up rather than silently dismissing on an auth error. A stale authentication prompt from before a sleep/wake cycle is also now correctly discarded so it can never dismiss a freshly re-armed lock.</p>
       </div>
     </div>
 
@@ -658,6 +602,12 @@
     </div>
 
     <div class="feature-card">
+      <span class="feature-icon">🌅</span>
+      <div class="feature-title">Spectrafall</div>
+      <p class="feature-desc">Slowly drift the entire rain through every colour preset in hue order — red, orange, amber, green, cyan, blue, amethyst, pink — blending smoothly between each. Three speeds. Starts from your current colour. Clock and message follow along.</p>
+    </div>
+
+    <div class="feature-card">
       <span class="feature-icon">💬</span>
       <div class="feature-title">Message Overlay</div>
       <p class="feature-desc">Hide a phrase in the rain. Characters materialise one by one as falling columns pass through them, then fade as a group. Includes built-in presets.</p>
@@ -672,7 +622,7 @@
     <div class="feature-card">
       <span class="feature-icon">🔒</span>
       <div class="feature-title">Password Lock <span style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;color:#c8b060;background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:4px;padding:0.15rem 0.45rem;vertical-align:middle;">BETA</span></div>
-      <p class="feature-desc">Require Touch ID, Face ID, or Apple Watch authentication to dismiss. Lock arms automatically once your idle threshold is met.</p>
+      <p class="feature-desc">Require Touch ID, Face ID, or Apple Watch authentication to dismiss. Lock arms automatically once your idle threshold is met. This is a casual privacy lock — it keeps curious eyes out, not a determined attacker. Designed for awareness, not enforcement.</p>
     </div>
 
     <div class="feature-card">
@@ -757,7 +707,7 @@
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-text">
-        <strong>Download</strong> <code>Cyph3rfall-v1.3.dmg</code> from the
+        <strong>Download</strong> <code>Cyph3rfall-v1.4.dmg</code> from the
         <a href="https://github.com/ikaazu/Cyph3rfall/releases/latest" target="_blank" rel="noopener" style="color:var(--green-dim)">Releases page</a>.
       </div>
     </div>
