@@ -50,6 +50,10 @@
 
 ### v1.4
 - **Color cycle mode** — slow full-screen palette drift through all 9 presets, smooth interpolation between head/trail colours, configurable speed. Mutually exclusive with Chromafall. Name TBD (candidates: Prismafall, Spectrafall, Driftfall).
+- **Release checklist (beyond standard notarize/DMG/publish flow):**
+  - Release notes must mention lock hardening: "Password lock now fails closed if authentication is unavailable" — signals active BETA improvement
+  - Add honest framing to website and README: password lock is a "casual privacy lock, not a security boundary" — pair this with the lock improvement for credibility
+  - Bump **both** `CFBundleShortVersionString` (1.3 → 1.4) **and** `CFBundleVersion` (build integer) in `TestApp/Info.plist` — required for in-app update banner to fire for existing users
 
 ### v1.5
 - **Auto-updater** — version label at top of menu transforms into "Update to vX.X" button when update available. In-app download + install + restart. Requires write permission to `/Applications`. Sparkle framework likely needed (adds a dependency — needs decision).
