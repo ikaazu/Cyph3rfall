@@ -575,9 +575,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         return h
     }
 
-    /// Wraps rows in a container view suitable for use inside `tabContentArea`.
-    /// The container's frame is managed by the tab area's constraints; the inner
-    /// NSStackView uses AutoLayout pinned to the container's top-leading corner.
+    /// Wraps rows in a scrollable container suitable for use inside `tabContentArea`.
     private func makeTabContent(rows: [NSView]) -> NSView {
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
@@ -585,13 +583,20 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         stack.alignment   = .leading
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let container = NSView()
-        container.addSubview(stack)
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller   = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers    = true
+        scrollView.drawsBackground       = false
+        scrollView.documentView          = stack
+
+        let clip = scrollView.contentView
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 2),
+            stack.topAnchor.constraint(equalTo: clip.topAnchor, constant: 10),
+            stack.leadingAnchor.constraint(equalTo: clip.leadingAnchor, constant: 2),
+            stack.widthAnchor.constraint(equalTo: clip.widthAnchor, constant: -2),
         ])
-        return container
+        return scrollView
     }
 
     private func makeFilesTabContent() -> NSView {
