@@ -588,9 +588,14 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers    = true
         scrollView.drawsBackground       = false
-        scrollView.documentView          = stack
 
-        let clip = scrollView.contentView
+        // NSClipView is not flipped by default — content anchors to the bottom
+        // when shorter than the scroll area. A flipped clip view fixes this.
+        let clip = FlippedClipView()
+        clip.drawsBackground  = false
+        scrollView.contentView  = clip
+        scrollView.documentView = stack
+
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: clip.topAnchor, constant: 10),
             stack.leadingAnchor.constraint(equalTo: clip.leadingAnchor, constant: 2),
@@ -1080,4 +1085,10 @@ private final class DensityTickBar: NSView {
     override var intrinsicContentSize: NSSize {
         NSSize(width: NSView.noIntrinsicMetric, height: 18)
     }
+}
+
+// NSClipView subclass that flips the coordinate system so scroll view content
+// anchors to the top-left rather than the bottom-left.
+private final class FlippedClipView: NSClipView {
+    override var isFlipped: Bool { true }
 }
