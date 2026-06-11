@@ -790,15 +790,20 @@ final class Cyph3rfallView: NSView {
                 .font: cachedClockFont, .foregroundColor: cachedClockTextColor,
             ])
         }
-        let timeStr  = cachedTimeAttr!
-        let timeSize = timeStr.size()
+        let timeStr    = cachedTimeAttr!
+        let timeSize   = timeStr.size()
+        let timeLine   = CTLineCreateWithAttributedString(timeStr)
+        let timeBounds = CTLineGetBoundsWithOptions(timeLine, .useGlyphPathBounds)
 
         // Anchor: horizontal centre, vertical centre at 1/3 from top.
         // isFlipped = true → y increases downward, so 1/3 from top = bounds.height / 3.
         // clockDriftX/Y apply the slow burn-in-prevention offset.
+        // X: use glyph-path bounds width and subtract origin.x (left-side bearing) so
+        //    the visual centre lands exactly at the screen centre.
+        // Y: use typographic size() height so vertical spacing is unchanged.
         let clockCentreY = bounds.height / 3.0
-        let timeX = (bounds.width - timeSize.width) / 2 + clockDriftX
-        let timeY = clockCentreY - timeSize.height / 2   + clockDriftY
+        let timeX = (bounds.width - timeBounds.width) / 2.0 - timeBounds.origin.x + clockDriftX
+        let timeY = clockCentreY - timeSize.height / 2.0 + clockDriftY
 
         ctx.saveGState()
         ctx.setShadow(offset: .zero, blur: 24, color: cachedClockGlowCG)
@@ -813,13 +818,14 @@ final class Cyph3rfallView: NSView {
                 .font: cachedClockDateFont, .foregroundColor: cachedClockDateColor,
             ])
         }
-        let dateStr  = cachedDateAttr!
-        let dateSize = dateStr.size()
+        let dateStr    = cachedDateAttr!
+        let dateLine   = CTLineCreateWithAttributedString(dateStr)
+        let dateBounds = CTLineGetBoundsWithOptions(dateLine, .useGlyphPathBounds)
+        let dateX      = (bounds.width - dateBounds.width) / 2.0 - dateBounds.origin.x + clockDriftX
 
         ctx.saveGState()
         ctx.setShadow(offset: .zero, blur: 14, color: cachedClockGlowCG)
-        dateStr.draw(at: NSPoint(x: (bounds.width - dateSize.width) / 2 + clockDriftX,
-                                 y: timeY + timeSize.height + 6))
+        dateStr.draw(at: NSPoint(x: dateX, y: timeY + timeSize.height + 6))
         ctx.restoreGState()
     }
 }
