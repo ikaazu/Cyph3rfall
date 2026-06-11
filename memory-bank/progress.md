@@ -2,7 +2,24 @@
 
 ## Shipped
 
-### v1.2 (May 2026) — Current Release
+### v1.4.1 (June 2026) — Current Release
+- ✅ Spectrafall colour cycle mode (8 presets in hue order, 3 speeds, starts from active preset)
+- ✅ Password lock hardening — fails closed, stale LAContext invalidated on sleep/wake
+- ✅ Settings General tab scrollable (accommodates growing row count)
+- ✅ Fix: Message and Clock tab content anchored to top (FlippedClipView)
+- ✅ Font name validation on settings import
+- ✅ Website and README updated — Spectrafall feature, casual privacy lock framing
+- ✅ Notarized, stapled, DMG published, GitHub release live
+
+### v1.3 (June 2026)
+- ✅ Glyph atlas (CGImage bitmap blit, pre-warmed)
+- ✅ 60fps frame cap (raised from 30fps)
+- ✅ CVDisplayLink leak fixed — CPU drops to near zero after dismissal
+- ✅ Glyph mutation rate halved
+- ✅ "Show overlays on main display only" toggle
+- ✅ Verified on Mac Mini M4 dual 4K + 1440p high-refresh
+
+### v1.2 (May 2026)
 - ✅ Apple Notarized (Developer ID Application: Gregory Stock, GHXKLLWQPM)
 - ✅ Default column spacing changed to Wide
 - ✅ Density performance warning at >151%
@@ -48,12 +65,7 @@
 
 ## Roadmap
 
-### v1.4
-- **Color cycle mode** — slow full-screen palette drift through all 9 presets, smooth interpolation between head/trail colours, configurable speed. Mutually exclusive with Chromafall. Name TBD (candidates: Prismafall, Spectrafall, Driftfall).
-- **Release checklist (beyond standard notarize/DMG/publish flow):**
-  - Release notes must mention lock hardening: "Password lock now fails closed if authentication is unavailable" — signals active BETA improvement
-  - Add honest framing to website and README: password lock is a "casual privacy lock, not a security boundary" — pair this with the lock improvement for credibility
-  - Bump **both** `CFBundleShortVersionString` (1.3 → 1.4) **and** `CFBundleVersion` (build integer) in `TestApp/Info.plist` — required for in-app update banner to fire for existing users
+### v1.5
 
 ### v1.5
 - **Auto-updater** — version label at top of menu transforms into "Update to vX.X" button when update available. In-app download + install + restart. Requires write permission to `/Applications`. Sparkle framework likely needed (adds a dependency — needs decision).
