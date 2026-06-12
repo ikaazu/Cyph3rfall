@@ -14,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var aboutPanel: NSPanel?
     private var settings = Cyph3rfallSettings.load()
     private var updateAvailableVersion: String? = nil
+    private var updateDownloadURL:      URL?    = nil
+    private var isDownloadingUpdate             = false
     private let hotkeyManager = HotkeyManager()
 
     // MARK: - Lock state
@@ -99,9 +101,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
 
         // ── Update available banner (shown only when a newer version is found) ──
-        if let v = updateAvailableVersion {
+        if isDownloadingUpdate {
+            let item = NSMenuItem(title: "Downloading Update…", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            menu.addItem(.separator())
+        } else if let v = updateAvailableVersion {
             let updateItem = NSMenuItem(title: "⬆ Update Available (v\(v))",
-                                        action: #selector(openReleasePage),
+                                        action: #selector(installUpdate),
                                         keyEquivalent: "")
             updateItem.target = self
             menu.addItem(updateItem)
@@ -109,9 +116,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // ── Start Now ──────────────────────────────────────────────────
+        let hotkeyChar = settings.hotkeyCode >= 0 ? settings.hotkeyCharacter.lowercased() : ""
         let startItem = NSMenuItem(title: "Start Now",
                                    action: #selector(startNow),
-                                   keyEquivalent: "")
+                                   keyEquivalent: hotkeyChar)
+        if settings.hotkeyCode >= 0 {
+            startItem.keyEquivalentModifierMask = NSEvent.ModifierFlags(
+                rawValue: UInt(settings.hotkeyModifiers))
+        }
         startItem.target = self
         menu.addItem(startItem)
 
@@ -157,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ── Settings ───────────────────────────────────────────────────
         let settingsItem = NSMenuItem(title: "Settings…",
                                       action: #selector(openSettings),
-                                      keyEquivalent: ",")
+                                      keyEquivalent: "")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
@@ -340,17 +352,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                    let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let tagName = json["tag_name"] as? String {
 
-                    let latest = Self.stripVersionTag(tagName)
+                    let latest  = Self.stripVersionTag(tagName)
+                    let assets  = json["assets"] as? [[String: Any]] ?? []
+                    let dmgURL  = assets.first { ($0["name"] as? String)?.hasSuffix(".dmg") == true }
+                        .flatMap { $0["browser_download_url"] as? String }
+                        .flatMap(URL.init(string:))
 
                     if self.isNewerVersion(latest, than: current) {
                         self.updateAvailableVersion = latest
+                        self.updateDownloadURL      = dmgURL
                         self.rebuildMenu()
                         alert.messageText     = "Update Available"
-                        alert.informativeText = "Version \(latest) is available. Visit the releases page to download it."
-                        alert.addButton(withTitle: "View Release")
+                        alert.informativeText = "Cyph3rfall \(latest) is available."
+                        alert.addButton(withTitle: dmgURL != nil ? "Download & Install" : "View Release")
                         alert.addButton(withTitle: "Later")
                         if alert.runModal() == .alertFirstButtonReturn {
-                            self.openReleasePage()
+                            dmgURL != nil ? self.installUpdate() : self.openReleasePage()
                         }
                     } else {
                         alert.messageText     = "You're Up to Date"
@@ -414,6 +431,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 self.settings = newSettings
                 newSettings.save()
+                self.rebuildMenu()
                 // Push live into any active full-screen window.
                 self.fullScreen?.primaryRainView?.settings = newSettings
             }
@@ -646,8 +664,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
             guard self.isNewerVersion(latest, than: current) else { return }
 
+            let assets = json["assets"] as? [[String: Any]] ?? []
+            let dmgURL = assets.first { ($0["name"] as? String)?.hasSuffix(".dmg") == true }
+                .flatMap { $0["browser_download_url"] as? String }
+                .flatMap(URL.init(string:))
+
             DispatchQueue.main.async {
                 self.updateAvailableVersion = latest
+                self.updateDownloadURL      = dmgURL
                 self.rebuildMenu()
             }
         }.resume()
@@ -680,6 +704,111 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if l != r { return l > r }
         }
         return false
+    }
+
+    @objc private func installUpdate() {
+        guard let downloadURL = updateDownloadURL, !isDownloadingUpdate else {
+            if updateDownloadURL == nil { openReleasePage() }
+            return
+        }
+        isDownloadingUpdate = true
+        rebuildMenu()
+
+        let tempDMG = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("Cyph3rfall-update.dmg")
+
+        URLSession.shared.downloadTask(with: downloadURL) { [weak self] tempURL, _, error in
+            guard let self else { return }
+
+            if let error {
+                DispatchQueue.main.async {
+                    self.isDownloadingUpdate = false
+                    self.rebuildMenu()
+                    let a = NSAlert()
+                    a.messageText     = "Download Failed"
+                    a.informativeText = error.localizedDescription
+                    a.alertStyle      = .warning
+                    a.runModal()
+                }
+                return
+            }
+            guard let tempURL else { return }
+            try? FileManager.default.removeItem(at: tempDMG)
+            try? FileManager.default.moveItem(at: tempURL, to: tempDMG)
+
+            DispatchQueue.main.async {
+                self.isDownloadingUpdate = false
+                self.rebuildMenu()
+
+                let a = NSAlert()
+                a.messageText     = "Update Ready"
+                a.informativeText = "Cyph3rfall \(self.updateAvailableVersion ?? "") has been downloaded. Click Install & Restart to apply it now."
+                a.addButton(withTitle: "Install & Restart")
+                a.addButton(withTitle: "Later")
+                guard a.runModal() == .alertFirstButtonReturn else {
+                    try? FileManager.default.removeItem(at: tempDMG)
+                    return
+                }
+
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let mount = URL(fileURLWithPath: NSTemporaryDirectory())
+                        .appendingPathComponent("cyph3rfall-update-mount")
+                    guard self.run("/usr/bin/hdiutil",
+                                   ["attach", tempDMG.path,
+                                    "-mountpoint", mount.path,
+                                    "-nobrowse", "-quiet"]) == 0
+                    else {
+                        try? FileManager.default.removeItem(at: tempDMG)
+                        DispatchQueue.main.async {
+                            self.showUpdateError("Could not mount the update disk image.")
+                        }
+                        return
+                    }
+
+                    let src  = mount.appendingPathComponent("Cyph3rfall.app")
+                    let dest = URL(fileURLWithPath: Bundle.main.bundlePath)
+                    let ok   = self.run("/usr/bin/ditto", [src.path, dest.path]) == 0
+                    _ = self.run("/usr/bin/hdiutil", ["detach", mount.path, "-quiet"])
+                    try? FileManager.default.removeItem(at: tempDMG)
+
+                    DispatchQueue.main.async {
+                        if ok {
+                            self.relaunchApp()
+                        } else {
+                            self.showUpdateError("Could not install the update. Make sure Cyph3rfall is in your Applications folder.")
+                        }
+                    }
+                }
+            }
+        }.resume()
+    }
+
+    private func relaunchApp() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments     = [Bundle.main.bundlePath]
+        try? task.run()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApplication.shared.terminate(nil)
+        }
+    }
+
+    private func showUpdateError(_ message: String) {
+        let a = NSAlert()
+        a.messageText     = "Update Failed"
+        a.informativeText = message
+        a.alertStyle      = .warning
+        a.runModal()
+    }
+
+    @discardableResult
+    private func run(_ path: String, _ args: [String]) -> Int32 {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: path)
+        task.arguments     = args
+        try? task.run()
+        task.waitUntilExit()
+        return task.terminationStatus
     }
 
     @objc private func openReleasePage() {

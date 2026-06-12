@@ -48,6 +48,7 @@ final class Cyph3rfallView: NSView {
 
     private var columns:      [GlyphColumn] = []
     private var columnStep:   CGFloat       = 0   // horizontal distance between columns (< glyphSize)
+    private var columnOffset: CGFloat       = 0   // left margin so column grid is centred on screen
     private var lastTickTime: CFTimeInterval = 0
 
     // Frame rate cap — physics ticks every display link callback, but the view
@@ -124,12 +125,10 @@ final class Cyph3rfallView: NSView {
     private static let messageFadeOutRate:      CGFloat = 0.35  // ~3 s to fully fade
     private static let messageCooldownDuration: Double  = 8     // seconds before restart
 
-    // Clock overlay — slow positional drift to prevent screen burn.
-    // Two out-of-phase sine waves with different periods trace a path that
-    // never exactly repeats, covering ±30 pt (X) and ±20 pt (Y).
-    private var clockDriftElapsed: Double = 0   // accumulates real seconds
-    private var clockDriftX: CGFloat = 0
-    private var clockDriftY: CGFloat = 0
+    // Clock overlay — font size nudges ±1 pt once per minute to prevent burn-in
+    // without moving the clock off-centre relative to the message.
+    private var clockFontSizeOffset: CGFloat = 0
+    private var lastClockMinute: Int = -1
 
     // Clock overlay — formatters are created once and reused every frame.
     private lazy var clockTimeFmt: DateFormatter = {
@@ -289,15 +288,6 @@ final class Cyph3rfallView: NSView {
             advanceSpectraCycle(dt: dt)
         }
 
-        // Advance clock drift — only costs two trig calls per frame.
-        if settings.showClock {
-            clockDriftElapsed += dt
-            // X: 210 s half-period (~3.5 min full cycle), ±30 pt
-            // Y: 157 s half-period (~2.6 min full cycle), ±20 pt
-            // Different periods → path never repeats; coprime-ish values help.
-            clockDriftX = CGFloat(sin(clockDriftElapsed / 210 * .pi) * 30)
-            clockDriftY = CGFloat(sin(clockDriftElapsed / 157 * .pi) * 20)
-        }
 
         // Only trigger a redraw when enough time has elapsed — caps render rate
         // at 30 fps regardless of the display link's native refresh rate.
@@ -352,10 +342,11 @@ final class Cyph3rfallView: NSView {
         let guaranteed = Int(effectiveDensity)              // streams always added
         let extraProb  = effectiveDensity - Double(guaranteed) // chance of +1 more
 
+        columnOffset = (size.width - CGFloat(totalSlots) * colStep) / 2.0
         rebuildMessageChars()
 
         columns = (0 ..< totalSlots).flatMap { i -> [GlyphColumn] in
-            let x = CGFloat(i) * colStep
+            let x = columnOffset + CGFloat(i) * colStep
             var streams: [GlyphColumn] = []
             for _ in 0 ..< guaranteed {
                 streams.append(GlyphColumn(columnIndex: i, x: x,
@@ -618,10 +609,11 @@ final class Cyph3rfallView: NSView {
         let colStep = columnStep > 0 ? columnStep : ceil(cell * 0.75)
         let chars   = Array(msg)
 
-        // Ideal centred left edge, then snap to the nearest column boundary so
-        // every message character lands exactly on an existing rain column.
+        // Exact pixel centre for drawing. The column index is still snapped to
+        // the nearest rain column so the reveal trigger works, but the draw
+        // position is independent — no more snap-induced offset.
         let idealStartX = (bounds.width - CGFloat(chars.count) * colStep) / 2.0
-        let startCol    = Int((idealStartX / colStep).rounded())
+        let startCol    = Int(((idealStartX - columnOffset) / colStep).rounded())
 
         // Vertical anchor: centre of the character cell sits at 2/3 height.
         let targetY = bounds.height * (2.0 / 3.0)
@@ -630,7 +622,7 @@ final class Cyph3rfallView: NSView {
         let oldChars = messageChars
         messageChars = chars.enumerated().map { i, char in
             let colIdx = startCol + i
-            let cx     = CGFloat(colIdx) * colStep + colStep / 2.0
+            let cx     = columnOffset + (CGFloat(colIdx) + 0.5) * colStep
             let old    = oldChars.first(where: { $0.columnIndex == colIdx })
             return MessageChar(char: char, x: cx, y: targetY,
                                columnIndex: colIdx, alpha: old?.alpha ?? 0.0)
@@ -771,16 +763,27 @@ final class Cyph3rfallView: NSView {
 
     private func drawClock(_ ctx: CGContext) {
         // Refresh formatter output at most once per second.
-        let now   = Date()
-        let comps = Calendar.current.dateComponents([.minute, .second], from: now)
-        let uniqueSec = (comps.minute ?? 0) * 60 + (comps.second ?? 0)
+        let now    = Date()
+        let comps  = Calendar.current.dateComponents([.minute, .second], from: now)
+        let minute = comps.minute ?? 0
+        if minute != lastClockMinute {
+            lastClockMinute     = minute
+            clockFontSizeOffset = CGFloat([-1, 0, 1].randomElement()!)
+            let sz              = settings.clockFontSize + clockFontSizeOffset
+            cachedClockFont     = NSFont(name: settings.clockFontName, size: sz)
+                               ?? NSFont.systemFont(ofSize: sz, weight: .thin)
+            cachedClockDateFont = NSFont(name: settings.clockFontName, size: sz * 0.32)
+                               ?? NSFont.systemFont(ofSize: sz * 0.32, weight: .thin)
+            cachedTimeAttr      = nil
+            cachedDateAttr      = nil
+        }
+        let uniqueSec = minute * 60 + (comps.second ?? 0)
         if uniqueSec != lastClockSecond {
             lastClockSecond  = uniqueSec
             cachedTimeString = clockTimeFmt.string(from: now)
             cachedDateString = clockDateFmt.string(from: now)
-            // String content changed — rebuild attributed strings next draw.
-            cachedTimeAttr = nil
-            cachedDateAttr = nil
+            cachedTimeAttr   = nil
+            cachedDateAttr   = nil
         }
 
         // Rebuild the attributed string if needed (new second, or settings changed).
@@ -795,15 +798,11 @@ final class Cyph3rfallView: NSView {
         let timeLine   = CTLineCreateWithAttributedString(timeStr)
         let timeBounds = CTLineGetBoundsWithOptions(timeLine, .useGlyphPathBounds)
 
-        // Anchor: horizontal centre, vertical centre at 1/3 from top.
-        // isFlipped = true → y increases downward, so 1/3 from top = bounds.height / 3.
-        // clockDriftX/Y apply the slow burn-in-prevention offset.
-        // X: use glyph-path bounds width and subtract origin.x (left-side bearing) so
-        //    the visual centre lands exactly at the screen centre.
-        // Y: use typographic size() height so vertical spacing is unchanged.
+        // X: glyph-path bounds width minus left bearing → visual centre at screen centre.
+        // Y: typographic size() height keeps vertical spacing stable across font variants.
         let clockCentreY = bounds.height / 3.0
-        let timeX = (bounds.width - timeBounds.width) / 2.0 - timeBounds.origin.x + clockDriftX
-        let timeY = clockCentreY - timeSize.height / 2.0 + clockDriftY
+        let timeX = (bounds.width - timeBounds.width) / 2.0 - timeBounds.origin.x
+        let timeY = clockCentreY - timeSize.height / 2.0
 
         ctx.saveGState()
         ctx.setShadow(offset: .zero, blur: 24, color: cachedClockGlowCG)
@@ -821,7 +820,7 @@ final class Cyph3rfallView: NSView {
         let dateStr    = cachedDateAttr!
         let dateLine   = CTLineCreateWithAttributedString(dateStr)
         let dateBounds = CTLineGetBoundsWithOptions(dateLine, .useGlyphPathBounds)
-        let dateX      = (bounds.width - dateBounds.width) / 2.0 - dateBounds.origin.x + clockDriftX
+        let dateX      = (bounds.width - dateBounds.width) / 2.0 - dateBounds.origin.x
 
         ctx.saveGState()
         ctx.setShadow(offset: .zero, blur: 14, color: cachedClockGlowCG)

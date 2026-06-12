@@ -66,11 +66,12 @@
 ## Roadmap
 
 ### v1.5
-
-### v1.5
-- **Auto-updater** — version label at top of menu transforms into "Update to vX.X" button when update available. In-app download + install + restart. Requires write permission to `/Applications`. Sparkle framework likely needed (adds a dependency — needs decision).
-- **"Start Now" shortcut display** — assigned global shortcut shown right-aligned on the Start Now menu item, matching standard macOS menu convention. Blank if no shortcut set.
-- **Branded DMG installer** — custom dark background with Cyph3rfall icon + Applications folder alias + drag instruction. Replaces current plain DMG.
+- ✅ **Column grid centering** — rain columns laid out with equal margins left and right; clock, date, and message all share the same screen center axis.
+- ✅ **Clock/date centering** — CTLine glyph-path bounds for precise visual centering; burn-in protection replaced with ±1 pt font size nudge once per minute (no more positional drift).
+- ✅ **Version number in settings** — current app version displayed below the live preview panel.
+- ✅ **Auto-updater** — clicking "Update Available" downloads the DMG, prompts "Install & Restart", copies app via `ditto`, relaunches. No Sparkle dependency — uses GitHub Releases API already in place.
+- ✅ **"Start Now" shortcut display** — global hotkey shown right-aligned on the Start Now menu item using native AppKit rendering; updates when shortcut changes; blank if no shortcut set. ⌘, removed from Settings (not globally usable).
+- ✅ **Branded DMG installer** — custom MidJourney Matrix background, app icon + Applications alias, drag-to-install layout. Script: `scripts/make-dmg.sh`. Requires `create-dmg` via Homebrew.
 
 ### v2.0
 - **UI & Performance overhaul** — macOS HIG design pass (developer.apple.com/design), settings redesigned as macOS-style sidebar with coloured selection and attached square preview panel, full optimisation pass targeting M1–M5.

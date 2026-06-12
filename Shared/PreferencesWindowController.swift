@@ -340,6 +340,14 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         previewLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewLabel)
 
+        let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let versionLabel = NSTextField(labelWithString: "Cyph3rfall \(versionString)")
+        versionLabel.font      = .systemFont(ofSize: 10, weight: .regular)
+        versionLabel.textColor = .quaternaryLabelColor
+        versionLabel.alignment = .center
+        versionLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(versionLabel)
+
         // ── Layout ────────────────────────────────────────────────────
 
         let margin: CGFloat = 20
@@ -380,9 +388,13 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             previewRainView.topAnchor.constraint(equalTo: content.topAnchor, constant: margin),
             previewRainView.bottomAnchor.constraint(equalTo: previewLabel.topAnchor, constant: -6),
 
-            // Preview label — bottom aligned with button row bottom
+            // "Live Preview" label — above version label
             previewLabel.centerXAnchor.constraint(equalTo: previewRainView.centerXAnchor),
-            previewLabel.bottomAnchor.constraint(equalTo: btnRow.bottomAnchor),
+            previewLabel.bottomAnchor.constraint(equalTo: versionLabel.topAnchor, constant: -2),
+
+            // Version label — bottom aligned with button row bottom
+            versionLabel.centerXAnchor.constraint(equalTo: previewRainView.centerXAnchor),
+            versionLabel.bottomAnchor.constraint(equalTo: btnRow.bottomAnchor),
         ])
 
         previewRainView.startAnimation()

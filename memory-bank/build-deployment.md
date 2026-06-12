@@ -104,16 +104,9 @@ spctl --assess --type exec --verbose \
 
 ### 9. DMG
 ```bash
-mkdir -p /tmp/Cyph3rfall-dmg-stage
-cp -R /tmp/Cyph3rfall-vX.X.xcarchive/Products/Applications/Cyph3rfall.app \
-  /tmp/Cyph3rfall-dmg-stage/
-hdiutil create \
-  -volname "Cyph3rfall" \
-  -srcfolder /tmp/Cyph3rfall-dmg-stage \
-  -ov -format UDZO \
-  /tmp/Cyph3rfall-vX.X.dmg
-cp /tmp/Cyph3rfall-vX.X.dmg ~/MatrixRainSaver/
+scripts/make-dmg.sh X.X /path/to/notarized/Cyph3rfall.app
 ```
+Produces `Cyph3rfall-vX.X.dmg` in the repo root. Requires `create-dmg` (`brew install create-dmg`). Background image is `dmg-assets/background.png` (1320×800 px).
 
 ### 10. Commit & Release
 ```bash

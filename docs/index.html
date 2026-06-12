@@ -490,7 +490,7 @@
     <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
 
     <div class="hero-badges">
-      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.4.1 — Now Available</span>
+      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.5 — Now Available</span>
       <span class="badge">Free &amp; Open Source</span>
       <span class="badge">Swift &amp; AppKit</span>
       <span class="badge">macOS 14+</span>
@@ -505,7 +505,7 @@
       </svg>
       Download Latest Release
     </a>
-    <p class="download-note">v1.4.1 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+    <p class="download-note">v1.5 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
   </div>
 
   <div class="scroll-hint">↓ &nbsp; scroll</div>
@@ -514,24 +514,48 @@
 <!-- ══ WHAT'S NEW ════════════════════════════════════════════ -->
 <section id="whats-new">
   <p class="section-label">What's New</p>
-  <h2 class="section-title">Version 1.4</h2>
-  <p class="section-body">Spectrafall — a new colour cycle mode — plus reliability improvements to the password lock.</p>
+  <h2 class="section-title">Version 1.5</h2>
+  <p class="section-body">Centred layout, smarter burn-in protection, one-click auto-update, and a branded installer.</p>
 
   <div class="changelog">
 
     <div class="changelog-item">
-      <span class="changelog-icon">🌈</span>
+      <span class="changelog-icon">⊞</span>
       <div>
-        <div class="changelog-title">Spectrafall</div>
-        <p class="changelog-desc">A new colour mode that slowly drifts the entire rain through every preset — red, orange, amber, green, cyan, blue, amethyst, and pink — blending smoothly from one to the next. The cycle starts from your currently selected colour so there's no jarring jump on enable. Three speeds: Slow, Normal, and Fast. Mutually exclusive with Chromafall. The clock and message overlays follow the cycling colour throughout.</p>
+        <div class="changelog-title">Column Grid Centering</div>
+        <p class="changelog-desc">The rain columns are now laid out with equal margins on both sides so the grid is perfectly centred on every display. The clock and message overlays share the same centre axis — everything lines up.</p>
       </div>
     </div>
 
     <div class="changelog-item">
-      <span class="changelog-icon">🔒</span>
+      <span class="changelog-icon">🕐</span>
       <div>
-        <div class="changelog-title">Password Lock Hardening</div>
-        <p class="changelog-desc">Password lock now fails closed if authentication is unavailable — the screensaver stays up rather than silently dismissing on an auth error. A stale authentication prompt from before a sleep/wake cycle is also now correctly discarded so it can never dismiss a freshly re-armed lock.</p>
+        <div class="changelog-title">Improved Burn-in Protection</div>
+        <p class="changelog-desc">The clock overlay now subtly varies its font size by ±1 pt once per minute instead of drifting across the screen. The variation is imperceptible at any reasonable font size, but keeps the pixels moving without ever misaligning the clock from the grid centre.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">⬇️</span>
+      <div>
+        <div class="changelog-title">One-Click Auto-Update</div>
+        <p class="changelog-desc">When a new version is available, click the "Update Available" banner in the menu to download, install, and relaunch automatically. No browser, no Finder — just click and it handles the rest.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">⌨️</span>
+      <div>
+        <div class="changelog-title">Shortcut Display in Menu</div>
+        <p class="changelog-desc">Your global "Start Now" shortcut is now displayed right-aligned on the menu item in native macOS style. It updates instantly when you change the shortcut in Settings.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <span class="changelog-icon">💿</span>
+      <div>
+        <div class="changelog-title">Branded DMG Installer</div>
+        <p class="changelog-desc">The installer now opens as a drag-to-Applications window with a custom Matrix digital rain background — a proper macOS install experience.</p>
       </div>
     </div>
 
@@ -616,7 +640,7 @@
     <div class="feature-card">
       <span class="feature-icon">🕐</span>
       <div class="feature-title">Clock Overlay</div>
-      <p class="feature-desc">Display the time and date in a customisable font, subtly rendered over the rain with slow drift to prevent screen burn.</p>
+      <p class="feature-desc">Display the time and date in a customisable font, subtly rendered over the rain. Font size varies slightly each minute to prevent screen burn without ever drifting off-centre.</p>
     </div>
 
     <div class="feature-card">
@@ -640,7 +664,7 @@
     <div class="feature-card">
       <span class="feature-icon">🔄</span>
       <div class="feature-title">Auto Update Check</div>
-      <p class="feature-desc">Checks GitHub for new releases on launch and shows a banner in the menu when one is available. Trigger a manual check any time from the About panel.</p>
+      <p class="feature-desc">Checks GitHub for new releases on launch. When one is available, click the banner in the menu to download, install, and relaunch in one step — no browser or Finder required.</p>
     </div>
 
     <div class="feature-card">
@@ -707,7 +731,7 @@
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-text">
-        <strong>Download</strong> <code>Cyph3rfall-v1.4.1.dmg</code> from the
+        <strong>Download</strong> <code>Cyph3rfall-v1.5.dmg</code> from the
         <a href="https://github.com/ikaazu/Cyph3rfall/releases/latest" target="_blank" rel="noopener" style="color:var(--green-dim)">Releases page</a>.
       </div>
     </div>
