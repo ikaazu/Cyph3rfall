@@ -490,7 +490,7 @@
     <p class="hero-subtitle">Ambient Digital Rain for macOS</p>
 
     <div class="hero-badges">
-      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.5.2 — Now Available</span>
+      <span class="badge" style="border-color:rgba(0,224,20,0.6);color:var(--green);">v1.5.3 — Now Available</span>
       <span class="badge">Free &amp; Open Source</span>
       <span class="badge">Swift &amp; AppKit</span>
       <span class="badge">macOS 14+</span>
@@ -505,7 +505,7 @@
       </svg>
       Download Latest Release
     </a>
-    <p class="download-note">v1.5.2 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
+    <p class="download-note">v1.5.3 &nbsp;·&nbsp; macOS 14 Sonoma or later &nbsp;·&nbsp; Free forever</p>
   </div>
 
   <div class="scroll-hint">↓ &nbsp; scroll</div>
@@ -514,7 +514,7 @@
 <!-- ══ WHAT'S NEW ════════════════════════════════════════════ -->
 <section id="whats-new">
   <p class="section-label">What's New</p>
-  <h2 class="section-title">Version 1.5.2</h2>
+  <h2 class="section-title">Version 1.5.3</h2>
   <p class="section-body">Auto-updater relaunch fix.</p>
 
   <div class="changelog">
@@ -523,7 +523,7 @@
       <span class="changelog-icon">⬇️</span>
       <div>
         <div class="changelog-title">Auto-Update Relaunch Fixed</div>
-        <p class="changelog-desc">The one-click auto-updater now correctly relaunches after installing. Previously the app was copied but not reopened automatically — a shell watcher now waits for the old process to fully exit before launching the new version.</p>
+        <p class="changelog-desc">The one-click auto-updater now correctly relaunches after installing. The previous approach was blocked by the app sandbox — the relaunch now uses Launch Services directly, which handles it reliably.</p>
       </div>
     </div>
 
@@ -699,7 +699,7 @@
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-text">
-        <strong>Download</strong> <code>Cyph3rfall-v1.5.2.dmg</code> from the
+        <strong>Download</strong> <code>Cyph3rfall-v1.5.3.dmg</code> from the
         <a href="https://github.com/ikaazu/Cyph3rfall/releases/latest" target="_blank" rel="noopener" style="color:var(--green-dim)">Releases page</a>.
       </div>
     </div>

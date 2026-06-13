@@ -65,8 +65,11 @@
 
 ## Roadmap
 
-### v1.5.2 (June 2026) — Current Release
-- ✅ **Auto-updater relaunch fix** — shell watcher polls for old PID to exit before launching new instance; eliminates race condition where `open` activated the running process instead of relaunching.
+### v1.5.3 (June 2026) — Current Release
+- ✅ **Auto-updater relaunch fix (take 2)** — replaced shell watcher (killed by sandbox on parent exit) with `NSWorkspace.shared.openApplication(createsNewApplicationInstance: true)` + 1s delay before terminate; uses Launch Services directly, no child process.
+
+### v1.5.2
+- ✅ **Auto-updater relaunch fix (attempt)** — shell watcher approach; did not survive sandbox teardown.
 
 ### v1.5.1
 - ✅ **About panel transparency** — blurred `NSVisualEffectView` (double-pass `.hudWindow`) with transparent titlebar; `alphaValue = 0.82`.
