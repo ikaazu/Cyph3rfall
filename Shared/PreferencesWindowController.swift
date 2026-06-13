@@ -335,7 +335,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
         let previewLabel = NSTextField(labelWithString: "Live Preview")
         previewLabel.font      = .systemFont(ofSize: 10, weight: .medium)
-        previewLabel.textColor = .tertiaryLabelColor
+        previewLabel.textColor = .secondaryLabelColor
         previewLabel.alignment = .center
         previewLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewLabel)
@@ -343,7 +343,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let versionLabel = NSTextField(labelWithString: "Cyph3rfall \(versionString)")
         versionLabel.font      = .systemFont(ofSize: 10, weight: .regular)
-        versionLabel.textColor = .quaternaryLabelColor
+        versionLabel.textColor = .tertiaryLabelColor
         versionLabel.alignment = .center
         versionLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(versionLabel)
@@ -932,16 +932,36 @@ private final class PillTabBar: NSView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
+    private var isDark: Bool {
+        effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private func updateColors() {
+        let dark = isDark
+        layer?.backgroundColor = dark
+            ? NSColor(white: 0.18, alpha: 1).cgColor
+            : NSColor(white: 0.84, alpha: 1).cgColor
+        pill.layer?.backgroundColor = dark
+            ? NSColor(white: 0.44, alpha: 1).cgColor
+            : NSColor.white.cgColor
+        for (i, btn) in buttons.enumerated() {
+            setButtonAppearance(btn, selected: i == selectedIndex)
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
     private func setupBar() {
         wantsLayer = true
         layer?.cornerRadius = 9
-        layer?.backgroundColor = NSColor(white: 0.18, alpha: 1).cgColor
         heightAnchor.constraint(equalToConstant: 32).isActive = true
 
         // ── Pill (frame-based, not autolayout) ────────────────────────
         pill.wantsLayer = true
         pill.layer?.cornerRadius = 7
-        pill.layer?.backgroundColor = NSColor(white: 0.44, alpha: 1).cgColor
         addSubview(pill)         // translatesAutoresizingMaskIntoConstraints = true (default) — frame driven
 
         // ── Segment buttons (autolayout, equal widths) ────────────────
@@ -951,7 +971,6 @@ private final class PillTabBar: NSView {
             btn.tag = i
             btn.isBordered = false
             btn.translatesAutoresizingMaskIntoConstraints = false
-            setButtonAppearance(btn, selected: i == 0)
             addSubview(btn)
             buttons.append(btn)
 
@@ -966,6 +985,7 @@ private final class PillTabBar: NSView {
                 btn.leadingAnchor.constraint(equalTo: buttons[i - 1].trailingAnchor).isActive = true
             }
         }
+        updateColors()
     }
 
     // MARK: Pill frame
@@ -1010,7 +1030,10 @@ private final class PillTabBar: NSView {
     /// Use `attributedTitle` for reliable text colour on borderless buttons
     /// across all macOS versions — `contentTintColor` can be inconsistent.
     private func setButtonAppearance(_ btn: NSButton, selected: Bool) {
-        let color: NSColor = selected ? .white : NSColor(white: 0.60, alpha: 1)
+        let dark = isDark
+        let color: NSColor = selected
+            ? (dark ? .white : NSColor(white: 0.08, alpha: 1))
+            : (dark ? NSColor(white: 0.60, alpha: 1) : NSColor(white: 0.38, alpha: 1))
         let attrs: [NSAttributedString.Key: Any] = [
             .font:            NSFont.systemFont(ofSize: 12.5, weight: .medium),
             .foregroundColor: color,

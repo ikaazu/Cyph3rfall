@@ -65,6 +65,11 @@
 
 ## Roadmap
 
+### v1.5.1 (June 2026) — Current Release
+- ✅ **About panel transparency** — blurred `NSVisualEffectView` (double-pass `.hudWindow`) with transparent titlebar; `alphaValue = 0.82`.
+- ✅ **Settings tab bar light mode fix** — `PillTabBar` colours now adapt to system appearance via `viewDidChangeEffectiveAppearance()`; light mode shows light gray track + white pill + dark text.
+- ✅ **Live Preview / version label contrast** — bumped from tertiary/quaternary to secondary/tertiary label colour for readability in light mode.
+
 ### v1.5
 - ✅ **Column grid centering** — rain columns laid out with equal margins left and right; clock, date, and message all share the same screen center axis.
 - ✅ **Clock/date centering** — CTLine glyph-path bounds for precise visual centering; burn-in protection replaced with ±1 pt font size nudge once per minute (no more positional drift).

@@ -205,15 +205,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 440, height: 520),
-            styleMask:   [.titled, .closable],
+            styleMask:   [.titled, .closable, .fullSizeContentView],
             backing:     .buffered,
             defer:       false
         )
         panel.title = "About Cyph3rfall"
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.titlebarAppearsTransparent = true
 
-        guard let content = panel.contentView else { return }
+        let vfx = NSVisualEffectView(frame: .zero)
+        vfx.material     = .hudWindow
+        vfx.blendingMode = .behindWindow
+        vfx.state        = .active
+        vfx.alphaValue   = 0.82
+
+        // Second pass: re-blurs the already-blurred content for stronger perceived blur
+        let vfx2 = NSVisualEffectView(frame: .zero)
+        vfx2.material                                  = .hudWindow
+        vfx2.blendingMode                              = .withinWindow
+        vfx2.state                                     = .active
+        vfx2.translatesAutoresizingMaskIntoConstraints = false
+        vfx.addSubview(vfx2)
+        NSLayoutConstraint.activate([
+            vfx2.leadingAnchor.constraint(equalTo: vfx.leadingAnchor),
+            vfx2.trailingAnchor.constraint(equalTo: vfx.trailingAnchor),
+            vfx2.topAnchor.constraint(equalTo: vfx.topAnchor),
+            vfx2.bottomAnchor.constraint(equalTo: vfx.bottomAnchor),
+        ])
+
+        panel.contentView = vfx
+        let content = vfx
 
         // ── Icon ──────────────────────────────────────────────────────────
         let iconView = NSImageView(image: NSApp.applicationIconImage)
