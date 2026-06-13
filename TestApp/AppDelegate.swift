@@ -808,13 +808,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func relaunchApp() {
+        let pid  = ProcessInfo.processInfo.processIdentifier
+        let path = Bundle.main.bundlePath
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        task.arguments     = [Bundle.main.bundlePath]
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments     = ["-c",
+            "while kill -0 \(pid) 2>/dev/null; do sleep 0.1; done; open '\(path)'"]
         try? task.run()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            NSApplication.shared.terminate(nil)
-        }
+        NSApplication.shared.terminate(nil)
     }
 
     private func showUpdateError(_ message: String) {

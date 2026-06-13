@@ -65,7 +65,10 @@
 
 ## Roadmap
 
-### v1.5.1 (June 2026) — Current Release
+### v1.5.2 (June 2026) — Current Release
+- ✅ **Auto-updater relaunch fix** — shell watcher polls for old PID to exit before launching new instance; eliminates race condition where `open` activated the running process instead of relaunching.
+
+### v1.5.1
 - ✅ **About panel transparency** — blurred `NSVisualEffectView` (double-pass `.hudWindow`) with transparent titlebar; `alphaValue = 0.82`.
 - ✅ **Settings tab bar light mode fix** — `PillTabBar` colours now adapt to system appearance via `viewDidChangeEffectiveAppearance()`; light mode shows light gray track + white pill + dark text.
 - ✅ **Live Preview / version label contrast** — bumped from tertiary/quaternary to secondary/tertiary label colour for readability in light mode.
