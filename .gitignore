@@ -37,6 +37,15 @@ xcuserdata/
 # Archives
 *.xcarchive
 
+# Local build artifacts and DMG working files
+*.app/
+rw.*.dmg
+dmg_background.*
+icons.zip
+Matrix.saver/
+Matrix.saver.zip
+Screenshot*.png
+
 # CocoaPods / SPM (not used, but just in case)
 Pods/
 .build/
