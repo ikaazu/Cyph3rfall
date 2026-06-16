@@ -11,7 +11,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var idleWatcher: IdleWatcher!
     private var fullScreen: FullScreenWindow?
     private var prefsController: PreferencesWindowController?
-    private var aboutPanel: NSPanel?
     private var settings = Cyph3rfallSettings.load()
     private var updateAvailableVersion: String? = nil
     private var updateDownloadURL:      URL?    = nil
@@ -34,8 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Constants
 
     private static let idleTimeoutKey  = "idleTimeoutSeconds"
-    private static let websiteURL      = URL(string: "https://cyph3rfall.app")!
-    private static let emailURL        = URL(string: "mailto:dev@cyph3rfall.app")!
     private static let releasesPageURL = URL(string: "https://github.com/ikaazu/Cyph3rfall/releases/latest")!
 
     // Persisted idle timeout in seconds; 0 = disabled.
@@ -99,6 +96,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
+
+        // ── Version ────────────────────────────────────────────────────
+        let appVersion   = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let versionItem  = NSMenuItem(title: "Version \(appVersion)", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+        menu.addItem(.separator())
 
         // ── Update available banner (shown only when a newer version is found) ──
         if isDownloadingUpdate {
@@ -173,14 +177,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        menu.addItem(.separator())
-
-        // ── About ──────────────────────────────────────────────────────
-        let aboutItem = NSMenuItem(title: "About Cyph3rfall…",
-                                   action: #selector(showAbout),
+        let checkItem = NSMenuItem(title: "Check for Updates…",
+                                   action: #selector(checkForUpdatesManually),
                                    keyEquivalent: "")
-        aboutItem.target = self
-        menu.addItem(aboutItem)
+        checkItem.target = self
+        checkItem.image  = NSImage(systemSymbolName: "arrow.trianglehead.2.clockwise.rotate.90",
+                                   accessibilityDescription: nil)
+        menu.addItem(checkItem)
 
         menu.addItem(.separator())
 
@@ -195,175 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    @objc private func showAbout() {
-        // Re-use the panel if it already exists.
-        if let existing = aboutPanel {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 520),
-            styleMask:   [.titled, .closable, .fullSizeContentView],
-            backing:     .buffered,
-            defer:       false
-        )
-        panel.title = "About Cyph3rfall"
-        panel.isReleasedWhenClosed = false
-        panel.isMovableByWindowBackground = true
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.titlebarAppearsTransparent = true
-
-        let vfx = NSVisualEffectView(frame: .zero)
-        vfx.material     = .hudWindow
-        vfx.blendingMode = .behindWindow
-        vfx.state        = .active
-        vfx.alphaValue   = 0.82
-
-        // Second pass: re-blurs the already-blurred content for stronger perceived blur
-        let vfx2 = NSVisualEffectView(frame: .zero)
-        vfx2.material                                  = .hudWindow
-        vfx2.blendingMode                              = .withinWindow
-        vfx2.state                                     = .active
-        vfx2.translatesAutoresizingMaskIntoConstraints = false
-        vfx.addSubview(vfx2)
-        NSLayoutConstraint.activate([
-            vfx2.leadingAnchor.constraint(equalTo: vfx.leadingAnchor),
-            vfx2.trailingAnchor.constraint(equalTo: vfx.trailingAnchor),
-            vfx2.topAnchor.constraint(equalTo: vfx.topAnchor),
-            vfx2.bottomAnchor.constraint(equalTo: vfx.bottomAnchor),
-        ])
-
-        panel.contentView = vfx
-        let content = vfx
-
-        // ── Icon ──────────────────────────────────────────────────────────
-        let iconView = NSImageView(image: NSApp.applicationIconImage)
-        iconView.imageScaling = .scaleProportionallyUpOrDown
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 96).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 96).isActive = true
-
-        // ── App name ──────────────────────────────────────────────────────
-        let nameLabel = NSTextField(labelWithString: "Cyph3rfall")
-        nameLabel.font      = .systemFont(ofSize: 22, weight: .bold)
-        nameLabel.alignment = .center
-
-        // ── Version ───────────────────────────────────────────────────────
-        let appVersion  = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-        let versionLabel = NSTextField(labelWithString: "Version \(appVersion)")
-        versionLabel.font      = .systemFont(ofSize: 13)
-        versionLabel.textColor = .secondaryLabelColor
-        versionLabel.alignment = .center
-
-        // ── Check for Updates link ────────────────────────────────────────
-        let updateBtn = NSButton(title: "Check for Updates…",
-                                 target: self,
-                                 action: #selector(checkForUpdatesManually))
-        updateBtn.isBordered = false
-        updateBtn.attributedTitle = NSAttributedString(
-            string: "Check for Updates…",
-            attributes: [.foregroundColor: NSColor.linkColor,
-                         .font: NSFont.systemFont(ofSize: 13)])
-
-        // ── Tagline ───────────────────────────────────────────────────────
-        let taglineLabel = NSTextField(labelWithString: "Ambient digital rain for macOS")
-        taglineLabel.font      = .systemFont(ofSize: 12)
-        taglineLabel.textColor = .secondaryLabelColor
-        taglineLabel.alignment = .center
-
-        // ── Website + email links ─────────────────────────────────────────
-        let siteRow  = makeAboutLinkView(icon: "link",     title: "cyph3rfall.app",     action: #selector(openWebsite))
-        let emailRow = makeAboutLinkView(icon: "envelope", title: "dev@cyph3rfall.app", action: #selector(openContactEmail))
-        let linksRow = NSStackView(views: [siteRow, emailRow])
-        linksRow.orientation = .horizontal
-        linksRow.spacing     = 22
-        linksRow.alignment   = .centerY
-
-        // ── Credits ───────────────────────────────────────────────────────
-        let creditsLabel = NSTextField(wrappingLabelWithString:
-            "Built with Swift & AppKit\n\n" +
-            "Inspired by The Matrix (1999) and MatrixMania for Windows by StrongGames.\n\n" +
-            "I used MatrixMania for decades, once gave feedback that improved it, " +
-            "missed that feeling on modern macOS, and built my own spiritual successor.\n\n" +
-            "No screensaver frameworks were harmed.")
-        creditsLabel.font                    = .systemFont(ofSize: 12)
-        creditsLabel.textColor               = .secondaryLabelColor
-        creditsLabel.alignment               = .center
-        creditsLabel.maximumNumberOfLines    = 0
-        creditsLabel.preferredMaxLayoutWidth = 380
-
-        // ── Copyright ─────────────────────────────────────────────────────
-        let copyrightLabel = NSTextField(labelWithString: "© 2026 Greg Stock")
-        copyrightLabel.font      = .systemFont(ofSize: 11)
-        copyrightLabel.textColor = .tertiaryLabelColor
-        copyrightLabel.alignment = .center
-
-        // ── Layout ────────────────────────────────────────────────────────
-        let stack = NSStackView(views: [
-            iconView, nameLabel, versionLabel, updateBtn,
-            taglineLabel, linksRow, creditsLabel, copyrightLabel,
-        ])
-        stack.orientation = .vertical
-        stack.alignment   = .centerX
-        stack.spacing     = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(stack)
-
-        stack.setCustomSpacing(14, after: iconView)
-        stack.setCustomSpacing(2,  after: nameLabel)
-        stack.setCustomSpacing(6,  after: versionLabel)
-        stack.setCustomSpacing(16, after: updateBtn)
-        stack.setCustomSpacing(14, after: taglineLabel)
-        stack.setCustomSpacing(18, after: linksRow)
-        stack.setCustomSpacing(16, after: creditsLabel)
-
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 28),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -28),
-            stack.widthAnchor.constraint(equalToConstant: 392),
-        ])
-
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        aboutPanel = panel
-    }
-
-    /// Builds a small icon + blue-text link suitable for the About panel.
-    private func makeAboutLinkView(icon: String, title: String, action: Selector) -> NSView {
-        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
-        let img    = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
-                         .withSymbolConfiguration(config)
-        let imgView = NSImageView(image: img ?? NSImage())
-        imgView.contentTintColor = .linkColor
-
-        let btn = NSButton(title: title, target: self, action: action)
-        btn.isBordered = false
-        btn.attributedTitle = NSAttributedString(
-            string: title,
-            attributes: [.foregroundColor: NSColor.linkColor,
-                         .font: NSFont.systemFont(ofSize: 13)])
-
-        let h = NSStackView(views: [imgView, btn])
-        h.orientation = .horizontal
-        h.spacing     = 4
-        h.alignment   = .centerY
-        return h
-    }
-
-    @objc private func openWebsite() {
-        NSWorkspace.shared.open(Self.websiteURL)
-    }
-
-    @objc private func openContactEmail() {
-        NSWorkspace.shared.open(Self.emailURL)
-    }
-
-    /// Manual update check triggered from the About panel.
+    /// Manual update check triggered from the About tab in Settings.
     /// Shows feedback in both the update-found and up-to-date cases.
     @objc private func checkForUpdatesManually() {
         URLSession.shared.dataTask(with: Self.makeGitHubReleaseRequest()) { [weak self] data, _, error in
@@ -461,6 +296,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             prefsController?.onStartNow = { [weak self] in
                 self?.showScreensaver(manual: true)
+            }
+            prefsController?.onCheckForUpdates = { [weak self] in
+                self?.checkForUpdatesManually()
             }
         }
         prefsController?.refresh(from: settings)

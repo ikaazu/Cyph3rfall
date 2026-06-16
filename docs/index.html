@@ -537,22 +537,19 @@
   <p class="section-label">Features</p>
   <h2 class="section-title">The Matrix screensaver I always wanted didn't exist.<br>So I built it.</h2>
 
-  <div class="screenshot-tabs" role="tablist" aria-label="Settings tabs">
-    <button class="screenshot-tab active" onclick="showTab(0)" aria-selected="true">General</button>
-    <button class="screenshot-tab" onclick="showTab(1)" aria-selected="false">Message</button>
-    <button class="screenshot-tab" onclick="showTab(2)" aria-selected="false">Clock</button>
-    <button class="screenshot-tab" onclick="showTab(3)" aria-selected="false">Import/Export</button>
+  <div class="screenshot-tabs" role="tablist" aria-label="Settings appearance">
+    <button class="screenshot-tab active" onclick="showTab(0)" aria-selected="true">Dark Mode</button>
+    <button class="screenshot-tab" onclick="showTab(1)" aria-selected="false">Light Mode</button>
+    <button class="screenshot-tab" onclick="showTab(2)" aria-selected="false">About</button>
   </div>
 
   <div class="screenshot-gallery" id="screenshotGallery">
-    <img class="active" src="settings-screenshot.png"
-      alt="General tab — speed, density, glyph size, trail length, column spacing, colour preset, Chromafall, glow, dense mode, and password lock settings, with a live rain preview.">
-    <img src="settings-message.png"
-      alt="Message tab — show message overlay toggle, preset selector, and custom message text field.">
-    <img src="settings-clock.png"
-      alt="Clock tab — show clock overlay toggle, font picker, size slider, date toggle, and clock colour preset option.">
-    <img src="settings-importexport.png"
-      alt="Import/Export tab — Export Settings and Import Settings buttons for backing up and restoring your preferences.">
+    <img class="active" src="settings-dark.png"
+      alt="Cyph3rfall Settings in dark mode — sidebar navigation showing General, Message, Clock, Import/Export, and About tabs; General tab open with Animation, Color, and Display &amp; Security sections; live rain preview on the right.">
+    <img src="settings-light.png"
+      alt="Cyph3rfall Settings in light mode — same sidebar layout with full macOS light appearance, demonstrating automatic adaptation to system theme.">
+    <img src="settings-about.png"
+      alt="About tab in Cyph3rfall Settings — app icon, version 2.0, Check for Updates button, tagline, website and contact links, credits, and copyright.">
   </div>
 
   <div class="features-grid">
@@ -583,7 +580,7 @@
 
     <div class="feature-card">
       <span class="feature-icon">🎨</span>
-      <div class="feature-title">9 Colour Presets</div>
+      <div class="feature-title">9 Color Presets</div>
       <p class="feature-desc">Green, Amber, Cyan, White, Purple, Blue, Red, Orange, and Pink. Each preset has a coordinated trail and head glyph colour.</p>
     </div>
 
@@ -608,12 +605,12 @@
     <div class="feature-card">
       <span class="feature-icon">🕐</span>
       <div class="feature-title">Clock Overlay</div>
-      <p class="feature-desc">Display the time and date in a customisable font, subtly rendered over the rain. Font size varies slightly each minute to prevent screen burn without ever drifting off-centre.</p>
+      <p class="feature-desc">Display the time and date in any font installed on your Mac, subtly rendered over the rain. Font size varies slightly each minute to prevent screen burn without ever drifting off-centre.</p>
     </div>
 
     <div class="feature-card">
       <span class="feature-icon">🔒</span>
-      <div class="feature-title">Password Lock <span style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;color:#c8b060;background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:4px;padding:0.15rem 0.45rem;vertical-align:middle;">BETA</span></div>
+      <div class="feature-title">Password Lock</div>
       <p class="feature-desc">Require Touch ID, Face ID, or Apple Watch authentication to dismiss. Lock arms automatically once your idle threshold is met. This is a casual privacy lock — it keeps curious eyes out, not a determined attacker. Designed for awareness, not enforcement.</p>
     </div>
 
@@ -643,7 +640,7 @@
 
     <div class="feature-card">
       <span class="feature-icon">🎨</span>
-      <div class="feature-title">Clock Colour Presets</div>
+      <div class="feature-title">Clock Color Presets</div>
       <p class="feature-desc">Optionally tie the clock overlay colour to your active rain preset. Toggle it on and the clock tints itself to match — toggle it off for the classic neutral white.</p>
     </div>
 
@@ -746,6 +743,7 @@
     <a href="https://github.com/ikaazu/Cyph3rfall" target="_blank" rel="noopener">GitHub Repository</a>
     <a href="https://github.com/ikaazu/Cyph3rfall/releases" target="_blank" rel="noopener">Releases</a>
     <a href="https://github.com/ikaazu/Cyph3rfall/issues" target="_blank" rel="noopener">Report an Issue</a>
+    <a href="changelog.html">Changelog</a>
     <a href="privacy.html">Privacy &amp; Liability</a>
     <a href="mailto:dev@cyph3rfall.app">Contact</a>
   </div>

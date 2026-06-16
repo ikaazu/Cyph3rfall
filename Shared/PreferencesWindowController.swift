@@ -2,10 +2,12 @@ import AppKit
 
 /// Preferences panel for Cyph3rfall.
 /// Left side: pill-tabbed controls. Right side: live Cyph3rfallView preview.
-final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate {
+final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate,
+                                          NSTableViewDelegate, NSTableViewDataSource {
 
-    var onApply:    ((Cyph3rfallSettings) -> Void)?
-    var onStartNow: (() -> Void)?
+    var onApply:           ((Cyph3rfallSettings) -> Void)?
+    var onStartNow:        (() -> Void)?
+    var onCheckForUpdates: (() -> Void)?
 
     private var speedControl:      NSSegmentedControl!
     private var densitySlider:     NSSlider!
@@ -23,7 +25,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var primaryDisplayOnlyCheckbox: NSButton!
     private var lockCheckbox:              NSButton!
     private var clockCheckbox:     NSButton!
-    private var clockFontControl:  NSPopUpButton!
+    private var clockFontButton:   NSButton!
+    private var clockFontName:     String = "Gill Sans"
     private var clockSizeSlider:   NSSlider!
     private var clockSizeLabel:    NSTextField!
     private var dateCheckbox:            NSButton!
@@ -35,11 +38,19 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private var hotkeyRecorder:    HotkeyRecorderView!
     private var previewRainView:   Cyph3rfallView!
 
-    private static let messageLimit = 30
+    private static let messageLimit    = 30
+    private static let customMessageTag = 99
     private var originalSettings: Cyph3rfallSettings
 
-    // Tab management
-    private var pillTabBar:      PillTabBar!
+    // Sidebar navigation
+    private var sidebarTable: NSTableView!
+    private let sidebarItems: [(label: String, symbol: String)] = [
+        ("General",       "gearshape"),
+        ("Message",       "text.bubble"),
+        ("Clock",         "clock"),
+        ("Import/Export", "arrow.up.arrow.down"),
+        ("About",         "info.circle"),
+    ]
     private var tabContentArea = NSView()
     private var tabContentViews: [NSView] = []
     private var currentTabIndex = 0
@@ -50,7 +61,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         self.originalSettings = settings
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 640),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -137,15 +148,9 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         clockCheckbox = NSButton(checkboxWithTitle: "Show clock overlay",
                                  target: self, action: #selector(clockToggled(_:)))
 
-        clockFontControl = NSPopUpButton(frame: .zero, pullsDown: false)
-        for option in Cyph3rfallSettings.clockFontOptions {
-            let item = NSMenuItem(title: option.label, action: nil, keyEquivalent: "")
-            if let f = NSFont(name: option.name, size: 13) {
-                item.attributedTitle = NSAttributedString(string: option.label, attributes: [.font: f])
-            }
-            clockFontControl.menu?.addItem(item)
-        }
-        clockFontControl.target = self; clockFontControl.action = #selector(controlChanged(_:))
+        clockFontButton = NSButton(title: "Gill Sans", target: self,
+                                   action: #selector(chooseFontClicked))
+        clockFontButton.bezelStyle = .rounded
 
         let sizeRange = Cyph3rfallSettings.clockFontSizeRange
         clockSizeSlider = NSSlider(value: 80,
@@ -162,7 +167,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         dateCheckbox = NSButton(checkboxWithTitle: "Show date below clock",
                                 target: self, action: #selector(controlChanged(_:)))
 
-        clockColorPresetCheckbox = NSButton(checkboxWithTitle: "Match clock colour to rain preset",
+        clockColorPresetCheckbox = NSButton(checkboxWithTitle: "Match clock color to rain preset",
                                             target: self, action: #selector(controlChanged(_:)))
 
         // Message controls
@@ -175,8 +180,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
             messagePresetControl.lastItem?.tag = i
         }
         messagePresetControl.menu?.addItem(.separator())
-        messagePresetControl.addItem(withTitle: "Clear message")
-        messagePresetControl.lastItem?.tag = -1
+        messagePresetControl.addItem(withTitle: "Custom…")
+        messagePresetControl.lastItem?.tag = Self.customMessageTag
         messagePresetControl.target = self; messagePresetControl.action = #selector(messagePresetSelected(_:))
 
         let msgFont = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
@@ -206,10 +211,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         lockCheckbox = NSButton(checkboxWithTitle: "Require password to dismiss",
                                 target: self, action: #selector(controlChanged(_:)))
 
-        // ── Separators & info-wrapped controls ────────────────────────
-
-        let shortcutSep = NSBox(); shortcutSep.boxType = .separator
-        let lockSep     = NSBox(); lockSep.boxType     = .separator
+        // ── Info-wrapped controls ─────────────────────────────────────
 
         let denseControl = withInfo(denseCheckbox,
             tooltip: "Replicates the classic Matrix screensaver look. Density and Trail Length are overridden (those controls are disabled while active). Speed is set to a minimum of 1.5× — selecting Fast still increases it further.")
@@ -221,50 +223,76 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         let generalContent = makeTabContent(rows: [
             row(label: "Shortcut", control: withInfo(hotkeyRecorder,
                 tooltip: "A global keyboard shortcut that starts the screensaver from anywhere, even when another app is in front. Click the field to record a combo, or press Delete to clear it. Requires at least one modifier key (⌘, ⌥, ⌃, or ⇧).")),
-            shortcutSep,
+            sectionHeader("Animation"),
             row(label: "Speed",        control: speedControl),
             densityRow(),
             row(label: "Glyph Size",   control: sizeControl),
             row(label: "Trail Length", control: trailControl),
             row(label: "Columns",      control: columnSpacingControl),
-            row(label: "Color",        control: colorControl),
+            row(label: "Dense Mode",   control: denseControl),
+            sectionHeader("Color"),
+            row(label: "Color",       control: colorControl),
+            row(label: "Glow",         control: glowCheckbox),
             row(label: "Chromafall",   control: withInfo(colorZonesCheckbox,
                 tooltip: "Gives every falling stream its own randomly chosen colour. The colour is re-picked each time a stream wraps from the bottom back to the top, so the screen is always in motion.")),
             row(label: "Spectrafall",  control: withInfo(spectrafallCheckbox,
                 tooltip: "Slowly drifts the entire rain through every colour preset, blending smoothly from one to the next. The cycle starts from your selected colour. White is skipped to keep the rain saturated. Enabling Spectrafall turns off Chromafall — the two modes can't run together.")),
             row(label: "Cycle Speed",  control: spectrafallSpeedControl),
-            row(label: "Glow",         control: glowCheckbox),
-            row(label: "Dense Mode",   control: denseControl),
+            sectionHeader("Display & Security"),
             row(label: "Overlays",     control: primaryDisplayOnlyCheckbox),
-            lockSep,
             row(label: "Lock",         control: lockControl),
         ])
 
         let messageContent = makeTabContent(rows: [
-            row(label: "Message", control: messageCheckbox),
-            row(label: "Preset",  control: messagePresetControl),
+            messageCheckbox,
+            row(label: "Preset",   control: messagePresetControl),
             messageFieldRow(),
             messageNote(),
         ])
 
         let clockContent = makeTabContent(rows: [
-            row(label: "Clock",        control: clockCheckbox),
-            row(label: "Font",         control: clockFontControl),
+            clockCheckbox,
+            row(label: "Font",   control: clockFontButton),
             clockSizeRow(),
-            row(label: "Date",         control: dateCheckbox),
-            row(label: "Clock Colour", control: clockColorPresetCheckbox),
+            row(label: "Date",   control: dateCheckbox),
+            row(label: "Color", control: clockColorPresetCheckbox),
         ])
 
         let filesContent = makeFilesTabContent()
 
-        tabContentViews = [generalContent, messageContent, clockContent, filesContent]
+        let aboutContent = makeAboutTabContent()
+        tabContentViews = [generalContent, messageContent, clockContent, filesContent, aboutContent]
 
-        // ── Pill tab bar ──────────────────────────────────────────────
+        // ── Sidebar ───────────────────────────────────────────────────
 
-        pillTabBar = PillTabBar(labels: ["General", "Message", "Clock", "Import/Export"])
-        pillTabBar.translatesAutoresizingMaskIntoConstraints = false
-        pillTabBar.onSelect = { [weak self] index in self?.switchTab(to: index) }
-        content.addSubview(pillTabBar)
+        let sidebar = NSTableView()
+        sidebar.style                   = .sourceList
+        sidebar.headerView              = nil
+        sidebar.rowHeight            = 36
+        sidebar.allowsEmptySelection = false
+        let sidebarCol = NSTableColumn(identifier: .init("sidebar"))
+        sidebarCol.isEditable = false
+        sidebar.addTableColumn(sidebarCol)
+        sidebar.dataSource = self
+        sidebar.delegate   = self
+        sidebarTable = sidebar
+
+        let sidebarScroll = NSScrollView()
+        sidebarScroll.hasVerticalScroller   = false
+        sidebarScroll.hasHorizontalScroller = false
+        sidebarScroll.drawsBackground       = false
+        sidebarScroll.documentView          = sidebar
+        sidebarScroll.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(sidebarScroll)
+
+        let sidebarSep = NSView()
+        sidebarSep.wantsLayer = true
+        sidebarSep.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        sidebarSep.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(sidebarSep)
+
+        sidebar.reloadData()
+        sidebar.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
 
         // ── Tab content area (layer-backed for CATransition) ──────────
 
@@ -350,49 +378,54 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
         // ── Layout ────────────────────────────────────────────────────
 
-        let margin: CGFloat = 20
-        let gap:    CGFloat = 14
-        let leftW:  CGFloat = 460
+        let margin:   CGFloat = 16
+        let sidebarW: CGFloat = 180
+        let contentW: CGFloat = 460
 
         NSLayoutConstraint.activate([
-            // Pill tab bar — top-left
-            pillTabBar.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
-            pillTabBar.topAnchor.constraint(equalTo: content.topAnchor, constant: margin),
-            pillTabBar.widthAnchor.constraint(equalToConstant: leftW),
+            // Sidebar — left edge, full height
+            sidebarScroll.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            sidebarScroll.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebarScroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebarScroll.widthAnchor.constraint(equalToConstant: sidebarW),
 
-            // Tab content — fills left column between pill bar and divider
-            tabContentArea.leadingAnchor.constraint(equalTo: pillTabBar.leadingAnchor),
-            tabContentArea.widthAnchor.constraint(equalToConstant: leftW),
-            tabContentArea.topAnchor.constraint(equalTo: pillTabBar.bottomAnchor, constant: 10),
+            // Sidebar separator
+            sidebarSep.leadingAnchor.constraint(equalTo: sidebarScroll.trailingAnchor),
+            sidebarSep.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebarSep.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebarSep.widthAnchor.constraint(equalToConstant: 1),
+
+            // Tab content area
+            tabContentArea.leadingAnchor.constraint(equalTo: sidebarSep.trailingAnchor, constant: margin),
+            tabContentArea.widthAnchor.constraint(equalToConstant: contentW),
+            tabContentArea.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
             tabContentArea.bottomAnchor.constraint(equalTo: divider.topAnchor, constant: -10),
 
-            // Divider — sits above buttons
-            divider.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
-            divider.widthAnchor.constraint(equalToConstant: leftW),
+            // Divider — above buttons
+            divider.leadingAnchor.constraint(equalTo: sidebarSep.trailingAnchor, constant: margin),
+            divider.widthAnchor.constraint(equalToConstant: contentW),
             divider.bottomAnchor.constraint(equalTo: btnRow.topAnchor, constant: -10),
 
-            // Button row — pinned to window bottom
-            btnRow.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
-            btnRow.widthAnchor.constraint(equalToConstant: leftW),
+            // Button row
+            btnRow.leadingAnchor.constraint(equalTo: sidebarSep.trailingAnchor, constant: margin),
+            btnRow.widthAnchor.constraint(equalToConstant: contentW),
             btnRow.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -margin),
 
-            // Vertical separator — full height
-            vSep.leadingAnchor.constraint(equalTo: pillTabBar.trailingAnchor, constant: gap),
+            // Vertical separator — between content and preview
+            vSep.leadingAnchor.constraint(equalTo: tabContentArea.trailingAnchor, constant: margin),
             vSep.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
             vSep.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
             vSep.widthAnchor.constraint(equalToConstant: 1),
 
-            // Preview — right of separator, top aligned with pill bar
-            previewRainView.leadingAnchor.constraint(equalTo: vSep.trailingAnchor, constant: gap),
+            // Preview
+            previewRainView.leadingAnchor.constraint(equalTo: vSep.trailingAnchor, constant: margin),
             previewRainView.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
             previewRainView.topAnchor.constraint(equalTo: content.topAnchor, constant: margin),
             previewRainView.bottomAnchor.constraint(equalTo: previewLabel.topAnchor, constant: -6),
 
-            // "Live Preview" label — above version label
+            // Labels
             previewLabel.centerXAnchor.constraint(equalTo: previewRainView.centerXAnchor),
             previewLabel.bottomAnchor.constraint(equalTo: versionLabel.topAnchor, constant: -2),
-
-            // Version label — bottom aligned with button row bottom
             versionLabel.centerXAnchor.constraint(equalTo: previewRainView.centerXAnchor),
             versionLabel.bottomAnchor.constraint(equalTo: btnRow.bottomAnchor),
         ])
@@ -404,22 +437,55 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
     private func switchTab(to index: Int) {
         guard index != currentTabIndex, index < tabContentViews.count else { return }
-
-        let goingRight = index > currentTabIndex
-        let oldView    = tabContentViews[currentTabIndex]
-        let newView    = tabContentViews[index]
+        tabContentViews[currentTabIndex].isHidden = true
         currentTabIndex = index
+        tabContentViews[index].isHidden = false
+    }
 
-        // CATransition: push the layer's rendered content before changing hidden state
-        let transition = CATransition()
-        transition.type            = .push
-        transition.subtype         = goingRight ? .fromRight : .fromLeft
-        transition.duration        = 0.22
-        transition.timingFunction  = CAMediaTimingFunction(name: .easeInEaseOut)
-        tabContentArea.layer?.add(transition, forKey: "tabSwitch")
+    // MARK: - NSTableViewDataSource / NSTableViewDelegate
 
-        oldView.isHidden = true
-        newView.isHidden = false
+    func numberOfRows(in tableView: NSTableView) -> Int { sidebarItems.count }
+
+    func tableView(_ tableView: NSTableView,
+                   viewFor tableColumn: NSTableColumn?,
+                   row: Int) -> NSView? {
+        let item = sidebarItems[row]
+        let cell = NSTableCellView()
+
+        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        let img = NSImage(systemSymbolName: item.symbol,
+                          accessibilityDescription: nil)?
+                  .withSymbolConfiguration(config)
+        let imageView = NSImageView(image: img ?? NSImage())
+        imageView.contentTintColor = .controlAccentColor
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+
+        let label = NSTextField(labelWithString: item.label)
+        label.font = .systemFont(ofSize: 13)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        cell.textField = label
+        cell.imageView = imageView
+
+        cell.addSubview(imageView)
+        cell.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
+            imageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 18),
+            imageView.heightAnchor.constraint(equalToConstant: 18),
+            label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 8),
+            label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+        ])
+
+        return cell
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        let idx = sidebarTable.selectedRow
+        guard idx >= 0 else { return }
+        switchTab(to: idx)
     }
 
     // MARK: - Export / Import
@@ -522,6 +588,24 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         return col
     }
 
+    private func sectionHeader(_ title: String) -> NSView {
+        let lbl = NSTextField(labelWithString: title)
+        lbl.font      = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+        lbl.textColor = .secondaryLabelColor
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let wrapper = NSView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(lbl)
+        NSLayoutConstraint.activate([
+            lbl.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10),
+            lbl.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            lbl.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+            lbl.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
+        ])
+        return wrapper
+    }
+
     private func withInfo(_ control: NSView, tooltip: String) -> NSStackView {
         let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
         let image  = NSImage(systemSymbolName: "info.circle",
@@ -591,7 +675,7 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
     private func makeTabContent(rows: [NSView]) -> NSView {
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
-        stack.spacing     = 12
+        stack.spacing     = 10
         stack.alignment   = .leading
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -659,6 +743,106 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         return container
     }
 
+    private func makeAboutTabContent() -> NSView {
+        let iconView = NSImageView(image: NSApp.applicationIconImage)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.widthAnchor.constraint(equalToConstant: 96).isActive  = true
+        iconView.heightAnchor.constraint(equalToConstant: 96).isActive = true
+
+        let nameLabel = NSTextField(labelWithString: "Cyph3rfall")
+        nameLabel.font      = .systemFont(ofSize: 22, weight: .bold)
+        nameLabel.alignment = .center
+
+        let appVersion   = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let versionLabel = NSTextField(labelWithString: "Version \(appVersion)")
+        versionLabel.font      = .systemFont(ofSize: 13)
+        versionLabel.textColor = .secondaryLabelColor
+        versionLabel.alignment = .center
+
+        let updateBtn = NSButton(title: "Check for Updates…",
+                                 target: self,
+                                 action: #selector(triggerCheckForUpdates))
+        updateBtn.bezelStyle = .rounded
+        updateBtn.controlSize = .regular
+
+        let taglineLabel = NSTextField(labelWithString: "Ambient digital rain for macOS")
+        taglineLabel.font      = .systemFont(ofSize: 12)
+        taglineLabel.textColor = .secondaryLabelColor
+        taglineLabel.alignment = .center
+
+        let siteRow  = makeAboutLinkView(icon: "link",     title: "cyph3rfall.app",    action: #selector(openWebsite))
+        let emailRow = makeAboutLinkView(icon: "envelope", title: "dev@cyph3rfall.app", action: #selector(openContactEmail))
+        let linksRow = NSStackView(views: [siteRow, emailRow])
+        linksRow.orientation = .horizontal
+        linksRow.spacing     = 22
+        linksRow.alignment   = .centerY
+
+        let creditsLabel = NSTextField(wrappingLabelWithString:
+            "Built with Swift & AppKit\n\n" +
+            "Inspired by The Matrix (1999) and MatrixMania for Windows by StrongGames.\n\n" +
+            "I used MatrixMania for decades, once gave feedback that improved it, " +
+            "missed that feeling on modern macOS, and built my own spiritual successor.\n\n" +
+            "No screensaver frameworks were harmed.")
+        creditsLabel.font                    = .systemFont(ofSize: 12)
+        creditsLabel.textColor               = .secondaryLabelColor
+        creditsLabel.alignment               = .center
+        creditsLabel.maximumNumberOfLines    = 0
+        creditsLabel.preferredMaxLayoutWidth = 380
+
+        let copyrightLabel = NSTextField(labelWithString: "© 2026 Greg Stock")
+        copyrightLabel.font      = .systemFont(ofSize: 11)
+        copyrightLabel.textColor = .tertiaryLabelColor
+        copyrightLabel.alignment = .center
+
+        let stack = NSStackView(views: [
+            iconView, nameLabel, versionLabel, updateBtn,
+            taglineLabel, linksRow, creditsLabel, copyrightLabel,
+        ])
+        stack.orientation = .vertical
+        stack.alignment   = .centerX
+        stack.spacing     = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        stack.setCustomSpacing(14, after: iconView)
+        stack.setCustomSpacing(2,  after: nameLabel)
+        stack.setCustomSpacing(20, after: versionLabel)
+        stack.setCustomSpacing(20, after: updateBtn)
+        stack.setCustomSpacing(14, after: taglineLabel)
+        stack.setCustomSpacing(18, after: linksRow)
+        stack.setCustomSpacing(16, after: creditsLabel)
+
+        let container = NSView()
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 28),
+            stack.widthAnchor.constraint(equalToConstant: 392),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -16),
+        ])
+        return container
+    }
+
+    private func makeAboutLinkView(icon: String, title: String, action: Selector) -> NSView {
+        let config  = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let img     = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
+                          .withSymbolConfiguration(config)
+        let imgView = NSImageView(image: img ?? NSImage())
+        imgView.contentTintColor = .linkColor
+
+        let btn = NSButton(title: title, target: self, action: action)
+        btn.isBordered     = false
+        btn.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [.foregroundColor: NSColor.linkColor,
+                         .font: NSFont.systemFont(ofSize: 13)])
+
+        let h = NSStackView(views: [imgView, btn])
+        h.orientation = .horizontal
+        h.spacing     = 4
+        h.alignment   = .centerY
+        return h
+    }
+
     private func row(label text: String, control: NSView) -> NSStackView {
         let lbl = NSTextField(labelWithString: text + ":")
         lbl.font = .systemFont(ofSize: NSFont.systemFontSize)
@@ -712,9 +896,8 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         clockColorPresetCheckbox.state = s.clockColorTiedToPreset ? .on : .off
         clockSizeSlider.doubleValue = Double(s.clockFontSize)
         clockSizeLabel.stringValue  = "\(Int(s.clockFontSize)) pt"
-        let fontIdx = Cyph3rfallSettings.clockFontOptions
-            .firstIndex(where: { $0.name == s.clockFontName }) ?? 0
-        clockFontControl.selectItem(at: fontIdx)
+        clockFontName = s.clockFontName
+        applyClockFontToButton(s.clockFontName)
         updateClockControlsEnabled(s.showClock)
 
         previewRainView?.settings = s
@@ -744,15 +927,24 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         s.showClock              = clockCheckbox.state            == .on
         s.showDate               = dateCheckbox.state             == .on
         s.clockColorTiedToPreset = clockColorPresetCheckbox.state == .on
-        s.clockFontSize    = CGFloat(clockSizeSlider.doubleValue)
-        let fi = clockFontControl.indexOfSelectedItem
-        if fi >= 0 && fi < Cyph3rfallSettings.clockFontOptions.count {
-            s.clockFontName = Cyph3rfallSettings.clockFontOptions[fi].name
-        }
+        s.clockFontSize = CGFloat(clockSizeSlider.doubleValue)
+        s.clockFontName = clockFontName
         return s
     }
 
     // MARK: - Actions
+
+    @objc private func openWebsite() {
+        NSWorkspace.shared.open(URL(string: "https://cyph3rfall.app")!)
+    }
+
+    @objc private func openContactEmail() {
+        NSWorkspace.shared.open(URL(string: "mailto:dev@cyph3rfall.app")!)
+    }
+
+    @objc private func triggerCheckForUpdates() {
+        onCheckForUpdates?()
+    }
 
     @objc private func controlChanged(_ sender: Any) {
         previewRainView.settings = collect()
@@ -807,6 +999,22 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         previewRainView.settings = collect()
     }
 
+    @objc private func chooseFontClicked() {
+        let fm = NSFontManager.shared
+        fm.target = self
+        let current = NSFont(name: clockFontName, size: 13)
+                   ?? NSFont.systemFont(ofSize: 13)
+        fm.setSelectedFont(current, isMultiple: false)
+        fm.orderFrontFontPanel(self)
+    }
+
+    @objc func changeFont(_ sender: Any?) {
+        guard let font = (sender as? NSFontManager)?.selectedFont else { return }
+        clockFontName = font.fontName
+        applyClockFontToButton(font.fontName)
+        previewRainView.settings = collect()
+    }
+
     @objc private func messageToggled(_ sender: NSButton) {
         updateMessageControlsEnabled(sender.state == .on)
         previewRainView.settings = collect()
@@ -814,26 +1022,34 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
 
     private func updateMessageControlsEnabled(_ enabled: Bool) {
         messagePresetControl.isEnabled = enabled
-        messageField.isEnabled         = enabled
         messageCountLabel.isEnabled    = enabled
+        updateMessageFieldEnabled()
+    }
+
+    private func updateMessageFieldEnabled() {
+        let messageOn = messageCheckbox.state == .on
+        let isCustom  = messagePresetControl.selectedTag() == Self.customMessageTag
+        messageField.isEnabled = messageOn && isCustom
     }
 
     @objc private func messagePresetSelected(_ sender: NSPopUpButton) {
         let tag = sender.selectedTag()
-        if tag == -1 {
-            messageField.stringValue = ""
-            updateMessageCount(0)
-        } else if tag >= 0, tag < Cyph3rfallSettings.messagePresets.count {
+        if tag >= 0, tag < Cyph3rfallSettings.messagePresets.count {
             let preset = Cyph3rfallSettings.messagePresets[tag]
             messageField.stringValue = preset
             updateMessageCount(preset.count)
         }
+        updateMessageFieldEnabled()
         previewRainView.settings = collect()
     }
 
     private func syncPresetPopup(to text: String) {
-        guard let idx = Cyph3rfallSettings.messagePresets.firstIndex(of: text) else { return }
-        messagePresetControl.selectItem(withTag: idx)
+        if let idx = Cyph3rfallSettings.messagePresets.firstIndex(of: text) {
+            messagePresetControl.selectItem(withTag: idx)
+        } else {
+            messagePresetControl.selectItem(withTag: Self.customMessageTag)
+        }
+        updateMessageFieldEnabled()
     }
 
     private func updateMessageCount(_ count: Int) {
@@ -849,8 +1065,15 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         if !enabled { densityPerfNote.isHidden = true }
     }
 
+    private func applyClockFontToButton(_ fontName: String) {
+        let display = NSFont(name: fontName, size: 13)?.displayName ?? fontName
+        let font    = NSFont(name: fontName, size: 13) ?? NSFont.systemFont(ofSize: 13)
+        clockFontButton.attributedTitle = NSAttributedString(string: display,
+                                                             attributes: [.font: font])
+    }
+
     private func updateClockControlsEnabled(_ enabled: Bool) {
-        clockFontControl.isEnabled         = enabled
+        clockFontButton.isEnabled          = enabled
         clockSizeSlider.isEnabled          = enabled
         clockSizeLabel.isEnabled           = enabled
         dateCheckbox.isEnabled             = enabled
@@ -905,147 +1128,6 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         } else {
             sheet.orderOut(nil)
         }
-    }
-}
-
-// MARK: - Pill tab bar
-
-/// A custom tab bar with a dark rounded background and an animated sliding
-/// pill highlight — styled after modern app tab bars.
-///
-/// The pill uses **frame-based** positioning (not constraints) so `layout()`
-/// can reposition it without triggering a secondary layout pass.
-private final class PillTabBar: NSView {
-
-    var onSelect: ((Int) -> Void)?
-    private(set) var selectedIndex: Int = 0
-
-    /// The sliding pill highlight — layer-backed so frame animation works.
-    private let pill    = NSView()
-    private var buttons: [NSButton] = []
-    private let labels:  [String]
-
-    init(labels: [String]) {
-        self.labels = labels
-        super.init(frame: .zero)
-        setupBar()
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    private var isDark: Bool {
-        effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    }
-
-    private func updateColors() {
-        let dark = isDark
-        layer?.backgroundColor = dark
-            ? NSColor(white: 0.18, alpha: 1).cgColor
-            : NSColor(white: 0.84, alpha: 1).cgColor
-        pill.layer?.backgroundColor = dark
-            ? NSColor(white: 0.44, alpha: 1).cgColor
-            : NSColor.white.cgColor
-        for (i, btn) in buttons.enumerated() {
-            setButtonAppearance(btn, selected: i == selectedIndex)
-        }
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        updateColors()
-    }
-
-    private func setupBar() {
-        wantsLayer = true
-        layer?.cornerRadius = 9
-        heightAnchor.constraint(equalToConstant: 32).isActive = true
-
-        // ── Pill (frame-based, not autolayout) ────────────────────────
-        pill.wantsLayer = true
-        pill.layer?.cornerRadius = 7
-        addSubview(pill)         // translatesAutoresizingMaskIntoConstraints = true (default) — frame driven
-
-        // ── Segment buttons (autolayout, equal widths) ────────────────
-        let n = CGFloat(labels.count)
-        for (i, label) in labels.enumerated() {
-            let btn = NSButton(title: label, target: self, action: #selector(segTapped(_:)))
-            btn.tag = i
-            btn.isBordered = false
-            btn.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(btn)
-            buttons.append(btn)
-
-            NSLayoutConstraint.activate([
-                btn.topAnchor.constraint(equalTo: topAnchor),
-                btn.bottomAnchor.constraint(equalTo: bottomAnchor),
-                btn.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 1.0 / n),
-            ])
-            if i == 0 {
-                btn.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-            } else {
-                btn.leadingAnchor.constraint(equalTo: buttons[i - 1].trailingAnchor).isActive = true
-            }
-        }
-        updateColors()
-    }
-
-    // MARK: Pill frame
-
-    override func layout() {
-        super.layout()
-        // Directly set the pill frame — no constraint changes, so no re-layout loop.
-        pill.frame = pillRect(for: selectedIndex)
-    }
-
-    private func pillRect(for index: Int) -> CGRect {
-        guard bounds.width > 0 else { return .zero }
-        let segW = bounds.width / CGFloat(labels.count)
-        return CGRect(x: 3 + CGFloat(index) * segW,
-                      y: 3,
-                      width: segW - 6,
-                      height: bounds.height - 6)
-    }
-
-    // MARK: Selection
-
-    /// Programmatically select a tab; animated = false on first display.
-    func select(index: Int, animated: Bool = true) {
-        guard index < labels.count else { return }
-        selectedIndex = index
-        for (i, btn) in buttons.enumerated() {
-            setButtonAppearance(btn, selected: i == index)
-        }
-        let target = pillRect(for: index)
-        if animated {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration       = 0.22
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                ctx.allowsImplicitAnimation = true
-                pill.animator().frame = target
-            }
-        } else {
-            pill.frame = target
-        }
-    }
-
-    /// Use `attributedTitle` for reliable text colour on borderless buttons
-    /// across all macOS versions — `contentTintColor` can be inconsistent.
-    private func setButtonAppearance(_ btn: NSButton, selected: Bool) {
-        let dark = isDark
-        let color: NSColor = selected
-            ? (dark ? .white : NSColor(white: 0.08, alpha: 1))
-            : (dark ? NSColor(white: 0.60, alpha: 1) : NSColor(white: 0.38, alpha: 1))
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font:            NSFont.systemFont(ofSize: 12.5, weight: .medium),
-            .foregroundColor: color,
-        ]
-        btn.attributedTitle = NSAttributedString(string: btn.title, attributes: attrs)
-    }
-
-    @objc private func segTapped(_ sender: NSButton) {
-        let idx = sender.tag
-        guard idx != selectedIndex else { return }
-        select(index: idx)
-        onSelect?(idx)
     }
 }
 

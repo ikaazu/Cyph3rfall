@@ -163,24 +163,6 @@ extension Cyph3rfallSettings {
         if spectrafallEnabled { colorZonesEnabled = false }
     }
 
-    /// Fonts offered in the clock font picker.
-    /// Every entry ships with macOS 14 Sonoma.
-    static let clockFontOptions: [(label: String, name: String)] = [
-        ("Helvetica Neue",        "Helvetica Neue"),
-        ("Avenir",                "Avenir"),
-        ("Futura",                "Futura"),
-        ("Gill Sans",             "Gill Sans"),
-        ("Optima",                "Optima"),
-        ("Trebuchet MS",          "Trebuchet MS"),
-        ("Baskerville",           "Baskerville"),
-        ("Didot",                 "Didot"),
-        ("Georgia",               "Georgia"),
-        ("American Typewriter",   "American Typewriter"),
-        ("Impact",                "Impact"),
-        ("Menlo",                 "Menlo"),
-        ("Courier New",           "Courier New"),
-    ]
-
     static let clockFontSizeRange: ClosedRange<CGFloat> = 36 ... 144
 
     /// Pre-loaded messages for the message-overlay picker.

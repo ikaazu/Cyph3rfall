@@ -83,12 +83,7 @@ extension Cyph3rfallSettings {
         if let v = bool("showClock")      { s.showClock          = v }
         if let v = bool("showDate")       { s.showDate           = v }
         if let v = bool("clockColorTiedToPreset") { s.clockColorTiedToPreset = v }
-        // Only accept fonts from the built-in picker list. A hand-edited or
-        // malicious settings file can't inject an arbitrary font name.
-        if let v = string("clockFont"),
-           clockFontOptions.contains(where: { $0.name == v }) {
-            s.clockFontName = v
-        }
+        if let v = string("clockFont"), !v.isEmpty { s.clockFontName = v }
         if let v = double("clockSize") {
             s.clockFontSize = CGFloat(v).clamped(to: clockFontSizeRange)
         }

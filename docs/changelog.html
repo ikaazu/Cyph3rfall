@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — Cyph3rfall</title>
+  <meta name="description" content="Full version history and release notes for Cyph3rfall — Ambient Digital Rain for macOS.">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ikaazu/Cyph3rfall/main/TestApp/Assets.xcassets/AppIcon.appiconset/icon_32x32.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #00e014;
+      --green-dim:  #00a00e;
+      --green-dark: #003805;
+      --head:       #d9ffd9;
+      --bg:         #000;
+      --text:       #c8c8c8;
+      --text-dim:   #707070;
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────────── */
+    .site-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid rgba(0, 224, 20, 0.1);
+    }
+
+    .nav-home {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--head);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-home:hover { color: var(--green); }
+
+    .nav-link {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+
+    .nav-link:hover { color: var(--green-dim); }
+
+    /* ── Page header ─────────────────────────────────────────── */
+    .page-header {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 4rem 2rem 2.5rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.75rem;
+    }
+
+    .page-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      color: var(--head);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-subtitle {
+      font-size: 1rem;
+      color: var(--text-dim);
+    }
+
+    /* ── Timeline ────────────────────────────────────────────── */
+    .timeline {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 2rem 6rem;
+    }
+
+    .release {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 0 2.5rem;
+      padding: 2.5rem 0;
+      border-top: 1px solid rgba(0, 224, 20, 0.1);
+    }
+
+    .release:first-child { border-top: none; }
+
+    /* ── Release meta (left column) ─────────────────────────── */
+    .release-meta {
+      padding-top: 0.15rem;
+    }
+
+    .release-version {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--head);
+      letter-spacing: -0.01em;
+    }
+
+    .release-date {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    .release-badge {
+      display: inline-block;
+      margin-top: 0.6rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 224, 20, 0.35);
+      color: var(--green-dim);
+      background: rgba(0, 56, 5, 0.4);
+    }
+
+    .release-badge.current {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(0, 56, 5, 0.7);
+    }
+
+    /* ── Release body (right column) ────────────────────────── */
+    .release-body h3 {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green-dim);
+      margin: 1.25rem 0 0.4rem;
+    }
+
+    .release-body h3:first-child { margin-top: 0; }
+
+    .release-body ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .release-body li {
+      font-size: 0.95rem;
+      color: var(--text);
+      padding: 0.2rem 0 0.2rem 1.1rem;
+      position: relative;
+    }
+
+    .release-body li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--green-dim);
+    }
+
+    .release-body li strong {
+      color: var(--head);
+      font-weight: 600;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      border-top: 1px solid rgba(0, 224, 20, 0.1);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    footer a {
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--green-dim); }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .release {
+        grid-template-columns: 1fr;
+        gap: 0.5rem 0;
+      }
+      .release-meta { padding-top: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ───────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <a class="nav-home" href="index.html">Cyph3rfall</a>
+  <a class="nav-link" href="https://github.com/ikaazu/Cyph3rfall/releases" target="_blank" rel="noopener">All Releases ↗</a>
+</nav>
+
+<!-- ── Page header ───────────────────────────────────────────── -->
+<div class="page-header">
+  <p class="section-label">Release Notes</p>
+  <h1 class="page-title">Changelog</h1>
+  <p class="page-subtitle">Every version of Cyph3rfall, from the beginning.</p>
+</div>
+
+<!-- ── Timeline ──────────────────────────────────────────────── -->
+<div class="timeline">
+
+  <!-- v2.0 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v2.0</div>
+      <div class="release-date">June 2026</div>
+      <span class="release-badge current">Latest</span>
+    </div>
+    <div class="release-body">
+      <h3>Settings</h3>
+      <ul>
+        <li><strong>Sidebar navigation</strong> — settings panel redesigned with a macOS-style source list sidebar, replacing the pill-style tab bar. General, Message, Clock, Import/Export, and About now appear as sidebar items.</li>
+        <li><strong>About moved into Settings</strong> — removed from the menu bar menu and consolidated into the sidebar as its own tab.</li>
+        <li><strong>HIG design pass</strong> — General tab reorganised into labelled sections (Animation, Color, Display &amp; Security). Checkbox rows are now self-labeling. Row spacing tightened throughout.</li>
+        <li><strong>Consistent spelling</strong> — American English used throughout the UI ("Color" not "Colour").</li>
+      </ul>
+      <h3>Clock</h3>
+      <ul>
+        <li><strong>System font picker</strong> — clock font is now chosen from the standard macOS font panel, giving access to every font installed on your Mac. Previously limited to a fixed list of 13 built-in fonts.</li>
+      </ul>
+      <h3>Menu Bar</h3>
+      <ul>
+        <li><strong>Version at top</strong> — current app version displayed as a disabled item at the top of the menu bar menu.</li>
+        <li><strong>Check for Updates in menu</strong> — no longer requires opening Settings to manually check for updates.</li>
+        <li><strong>Check for Updates icon</strong> — update action now displays a refresh SF Symbol icon for quick visual recognition.</li>
+      </ul>
+      <h3>Performance</h3>
+      <ul>
+        <li><strong>Shared display link</strong> — on multi-monitor setups, all screens are now driven by a single CVDisplayLink instead of one per display. Eliminates concurrent thread contention and produces smoother, more consistent frame pacing. Verified on Mac Mini M4 with dual 4K + 1440p displays.</li>
+      </ul>
+      <h3>Website</h3>
+      <ul>
+        <li><strong>Changelog page</strong> — full version history now published at cyph3rfall.app/changelog.html.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.5.3 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.5.3</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Bug Fix</h3>
+      <ul>
+        <li><strong>Auto-updater relaunch fix</strong> — replaced the shell watcher approach (which was killed by the macOS sandbox on app exit) with <code>NSWorkspace.shared.openApplication(createsNewApplicationInstance: true)</code>. The app now correctly relaunches itself after installing an update. Confirmed working on Mac Mini M4 and MacBook Pro M5.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.5.2 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.5.2</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Bug Fix (Attempt)</h3>
+      <ul>
+        <li><strong>Auto-updater relaunch (shell watcher)</strong> — first attempt at fixing the relaunch issue using a background shell loop to watch for the parent process to exit. This approach did not survive macOS sandbox teardown and was superseded by v1.5.3.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.5.1 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.5.1</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Visual Polish</h3>
+      <ul>
+        <li><strong>Transparent About panel</strong> — blurred glass effect using stacked <code>NSVisualEffectView</code> layers with <code>.hudWindow</code> material and a transparent titlebar.</li>
+        <li><strong>Settings light mode fix</strong> — tab bar colors now adapt correctly to light and dark system appearance. The pill highlight and button text were previously hardcoded to dark values.</li>
+        <li><strong>Preview label contrast</strong> — "Live Preview" and version labels in the settings panel are now more legible in light mode.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.5 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.5</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>New Features</h3>
+      <ul>
+        <li><strong>Auto-updater</strong> — Cyph3rfall can now download, install, and relaunch itself when a new version is available. Checks GitHub Releases on launch; no third-party framework required.</li>
+        <li><strong>Branded DMG installer</strong> — custom Matrix-themed background with drag-to-Applications layout. Built with <code>create-dmg</code> via the <code>scripts/make-dmg.sh</code> script.</li>
+        <li><strong>Start Now shortcut in menu</strong> — the configured global hotkey is displayed right-aligned on the Start Now menu item. Updates live when the shortcut changes.</li>
+      </ul>
+      <h3>Improvements</h3>
+      <ul>
+        <li><strong>Column grid centering</strong> — rain columns are now laid out symmetrically with equal margins on both sides of the screen.</li>
+        <li><strong>Clock &amp; date centering</strong> — uses CTLine glyph-path bounds for pixel-accurate visual centering. Burn-in protection changed from positional drift to a ±1pt font size nudge once per minute.</li>
+        <li><strong>Version in Settings</strong> — current app version displayed below the live preview panel in the settings window.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.4.1 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.4.1</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>New Features</h3>
+      <ul>
+        <li><strong>Spectrafall</strong> — a new color mode that slowly drifts the entire rain through every color preset, blending smoothly from one to the next. Three cycle speeds. Starts from your active preset. Incompatible with Chromafall — the two modes can't run together.</li>
+      </ul>
+      <h3>Improvements</h3>
+      <ul>
+        <li><strong>Password lock hardening</strong> — lock now fails closed if authentication is unavailable. Stale <code>LAContext</code> instances are invalidated on sleep and wake to prevent stale prompts from dismissing a re-locked session.</li>
+        <li><strong>General tab scrollable</strong> — the settings General tab is now in a scroll view, accommodating the growing list of controls without truncation.</li>
+        <li><strong>Message &amp; Clock tab fix</strong> — tab content now correctly anchors to the top of the scroll area using a flipped clip view (<code>FlippedClipView</code>), preventing controls from floating to the bottom when the tab is taller than its content.</li>
+        <li><strong>Font validation on import</strong> — imported settings files are now checked for valid font names before applying, preventing a crash if the font is unavailable on the current system.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.3 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.3</div>
+      <div class="release-date">June 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Performance</h3>
+      <ul>
+        <li><strong>Glyph atlas</strong> — each glyph/color combination is now pre-rendered into a <code>CGImage</code> bitmap and blitted directly to the screen. Replaces per-glyph Core Text layout calls in the draw loop. Dramatically reduces CPU usage at high density on 4K displays.</li>
+        <li><strong>60 fps frame cap</strong> — raised from 30 fps. The previous cap caused visible judder on high-refresh displays. Physics still run at full display link rate; only rendering is capped.</li>
+        <li><strong>CVDisplayLink leak fixed</strong> — display links are now correctly invalidated on dismissal. CPU usage drops to near zero after the screensaver exits.</li>
+        <li><strong>Glyph mutation rate halved</strong> — glyphs now change every 2 ticks instead of every tick, reducing draw calls while preserving the animated feel.</li>
+      </ul>
+      <h3>New Features</h3>
+      <ul>
+        <li><strong>Overlays on main display only</strong> — new toggle to restrict the clock and message overlays to the primary display, leaving secondary monitors showing rain only.</li>
+      </ul>
+      <h3>Tested On</h3>
+      <ul>
+        <li>Mac Mini M4 — dual display (4K + 1440p high-refresh). Smooth animation and correct CPU drop on dismiss confirmed.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.2 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.2</div>
+      <div class="release-date">May 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Distribution</h3>
+      <ul>
+        <li><strong>Apple Notarized</strong> — first notarized release. Signed with Developer ID Application: Gregory Stock (GHXKLLWQPM). Installs and runs without Gatekeeper prompts.</li>
+        <li><strong>Branded DMG</strong> — initial DMG packaging (plain layout; drag-to-Applications styling added in v1.5).</li>
+      </ul>
+      <h3>Improvements</h3>
+      <ul>
+        <li><strong>Wide columns default</strong> — column spacing now defaults to Wide for a cleaner out-of-box look.</li>
+        <li><strong>Density performance warning</strong> — a warning is shown in Settings when density exceeds 151%, noting that high values may affect performance on some systems.</li>
+        <li><strong>Version comparison fix</strong> — the auto-update check now correctly compares version numbers numerically. Versions like 1.02 no longer sort above 1.1.</li>
+        <li><strong>Build number removed</strong> — build number removed from the About panel; only the marketing version (e.g., 1.2) is shown.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.1 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.1</div>
+      <div class="release-date">May 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>New Features</h3>
+      <ul>
+        <li><strong>Settings panel</strong> — a full settings window with four tabs: General, Message, Clock, and Import/Export. Replaces the minimal initial configuration.</li>
+        <li><strong>Auto-update check</strong> — Cyph3rfall checks GitHub Releases on launch and displays an "Update Available" banner in the menu when a newer version is found.</li>
+        <li><strong>Settings export / import</strong> — save your configuration to a JSON file and restore it any time. Useful for backing up or moving settings between Macs. Password lock and keyboard shortcut are excluded for security.</li>
+        <li><strong>Column spacing</strong> — new Wide / Narrow toggle. Narrow packs columns 25% closer for a denser effect.</li>
+        <li><strong>Clock color presets</strong> — option to tie the clock overlay color to the active rain preset. Toggle off for neutral white.</li>
+        <li><strong>Chromafall</strong> — new multi-color mode that assigns each falling stream a randomly chosen color, re-picked each time the stream wraps.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v1.0</div>
+      <div class="release-date">May 2026</div>
+    </div>
+    <div class="release-body">
+      <h3>Initial Release</h3>
+      <ul>
+        <li><strong>Matrix rain animation</strong> — cascading glyphs rendered with CVDisplayLink and Core Graphics. Half-width katakana, digits, and symbols. No third-party frameworks.</li>
+        <li><strong>9 color presets</strong> — Green, Amber, Cyan, White, Purple, Blue, Red, Orange, and Pink. Each preset has coordinated trail and leading glyph colors.</li>
+        <li><strong>Menu bar app</strong> — lives entirely in the menu bar (<code>LSUIElement</code>). No Dock icon. Click the Ξ icon to start, stop, or configure.</li>
+        <li><strong>Idle activation</strong> — automatically starts after a configurable idle timeout (1–30 minutes, or never).</li>
+        <li><strong>Sleep / lid-close activation</strong> — starts when the Mac goes to sleep or the lid is closed.</li>
+        <li><strong>Global hotkey</strong> — assign any modifier+key combination to start the screensaver from anywhere, even when another app is in front.</li>
+        <li><strong>Multi-monitor</strong> — covers all connected displays simultaneously.</li>
+        <li><strong>Password lock</strong> — optionally require Touch ID or Apple Watch authentication to dismiss the screensaver.</li>
+        <li><strong>Message overlay</strong> — display a short custom phrase that materializes character by character as falling columns pass through it.</li>
+        <li><strong>Clock overlay</strong> — show the current time and optionally the date, centered on screen.</li>
+        <li><strong>Launch at login</strong> — register as a login item via <code>SMAppService</code> so Cyph3rfall starts automatically on login.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall" target="_blank" rel="noopener">GitHub Repository</a>
+    <a href="https://github.com/ikaazu/Cyph3rfall/releases" target="_blank" rel="noopener">All Releases</a>
+    <a href="privacy.html">Privacy &amp; Liability</a>
+    <a href="mailto:dev@cyph3rfall.app">Contact</a>
+  </div>
+  <p>Cyph3rfall is free and open source — MIT licensed.</p>
+  <p style="margin-top:0.4rem;">Made by <a href="https://gregstock.com" target="_blank" rel="noopener">Greg Stock</a> &nbsp;·&nbsp; Built with <a href="https://claude.ai/claude-code" target="_blank" rel="noopener">Claude Code</a> by Anthropic</p>
+  <p style="margin-top:0.6rem; font-size:0.78rem; opacity:0.5;">&copy; 2026 Greg Stock. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

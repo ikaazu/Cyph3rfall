@@ -19,7 +19,8 @@ final class FullScreenWindow {
     // All rain views across every screen — used to stop animation reliably.
     private var rainViews: [Cyph3rfallView] = []
 
-    private var windows: [NSWindow] = []
+    private var windows:     [NSWindow] = []
+    private var displayLink: CVDisplayLink?
     private var localMonitor:  Any?
     private var globalMonitor: Any?
     /// Called when user input is detected — AppDelegate decides whether to
@@ -45,6 +46,8 @@ final class FullScreenWindow {
             win.alphaValue = 0          // start invisible; fade-in reveals the rain
             windows.append(win)
         }
+
+        startDisplayLink()
 
         NSCursor.hide()
         NSApp.activate(ignoringOtherApps: true)
@@ -75,11 +78,13 @@ final class FullScreenWindow {
         localMonitor  = nil
         globalMonitor = nil
 
-        // Stop all CVDisplayLinks immediately — don't wait for the fade completion
-        // handler, which can be skipped if self is released before it fires.
+        // Stop the shared display link immediately — don't wait for the fade
+        // completion handler, which can be skipped if self is released before it fires.
         // The rain freezing during the 0.8 s fade is invisible since the window
         // is fading to transparent.
-        rainViews.forEach { $0.stopAnimation() }
+        if let link = displayLink { CVDisplayLinkStop(link) }
+        displayLink = nil
+        rainViews.forEach { $0.stopExternalAnimation() }
         rainViews.removeAll()
         primaryRainView = nil
 
@@ -120,7 +125,7 @@ final class FullScreenWindow {
         rainView.autoresizingMask = [.width, .height]
         rainView.settings = settings
         contentView.addSubview(rainView)
-        rainView.startAnimation()
+        rainView.startExternalAnimation()
 
         if isPrimary {
             primaryRainView = rainView
@@ -130,6 +135,20 @@ final class FullScreenWindow {
 
         win.makeKeyAndOrderFront(nil)
         return win
+    }
+
+    private func startDisplayLink() {
+        var link: CVDisplayLink?
+        CVDisplayLinkCreateWithActiveCGDisplays(&link)
+        guard let link else { return }
+        displayLink = link
+        CVDisplayLinkSetOutputHandler(link) { [weak self] _, _, _, _, _ in
+            DispatchQueue.main.async { [weak self] in
+                self?.rainViews.forEach { $0.externalTick() }
+            }
+            return kCVReturnSuccess
+        }
+        CVDisplayLinkStart(link)
     }
 
     private func armMonitors() {

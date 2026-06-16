@@ -43,7 +43,7 @@
 - ✅ Sleep/lid-close activation
 - ✅ Global hotkey
 - ✅ Multi-monitor
-- ✅ Password lock (Touch ID / Apple Watch) — BETA
+- ✅ Password lock (Touch ID / Apple Watch)
 - ✅ Message overlay
 - ✅ Clock overlay
 - ✅ Launch at login
@@ -66,7 +66,7 @@
 ## Roadmap
 
 ### v1.5.3 (June 2026) — Current Release
-- ✅ **Auto-updater relaunch fix (take 2)** — replaced shell watcher (killed by sandbox on parent exit) with `NSWorkspace.shared.openApplication(createsNewApplicationInstance: true)` + 1s delay before terminate; uses Launch Services directly, no child process.
+- ✅ **Auto-updater relaunch fix (verified working)** — replaced shell watcher (killed by sandbox on parent exit) with `NSWorkspace.shared.openApplication(createsNewApplicationInstance: true)` + 1s delay before terminate; uses Launch Services directly, no child process. Confirmed working on Mac Mini and MacBook Pro.
 
 ### v1.5.2
 - ✅ **Auto-updater relaunch fix (attempt)** — shell watcher approach; did not survive sandbox teardown.
@@ -84,17 +84,36 @@
 - ✅ **"Start Now" shortcut display** — global hotkey shown right-aligned on the Start Now menu item using native AppKit rendering; updates when shortcut changes; blank if no shortcut set. ⌘, removed from Settings (not globally usable).
 - ✅ **Branded DMG installer** — custom MidJourney Matrix background, app icon + Applications alias, drag-to-install layout. Script: `scripts/make-dmg.sh`. Requires `create-dmg` via Homebrew.
 
-### v2.0
-- **UI & Performance overhaul** — macOS HIG design pass (developer.apple.com/design), settings redesigned as macOS-style sidebar with coloured selection and attached square preview panel, full optimisation pass targeting M1–M5.
+### v2.0 — In Progress
+
+#### Settings
+- ✅ Sidebar navigation — macOS source-list style (NSTableView `.sourceList`), replacing PillTabBar pill tabs
+- ✅ About moved into Settings sidebar — removed from menu bar menu
+- ✅ HIG content pass — section headers (Animation, Color, Display & Security) in General tab; checkboxes self-labeling on Message and Clock tabs; row spacing tightened to 10pt
+- ✅ American spelling throughout UI ("Color" not "Colour")
+
+#### Menu
+- ✅ Version displayed at top of menu bar menu (disabled/grayed label)
+- ✅ "Check for Updates…" added to menu bar menu (alongside Settings)
+
+#### Website
+- ✅ Changelog page (cyph3rfall.app/changelog.html) — full version history
+- ✅ Add changelog link to footer nav
+
+#### Stability
+- ✅ Password lock out of beta — BETA label removed
+
+#### Performance
+- ✅ Shared CVDisplayLink across views — one link in FullScreenWindow drives all rain views via externalTick(); removed per-view links on multi-monitor
+- ✅ Profile on M4 / M5 — verified on Mac Mini M4 dual display; smoother frame pacing than v1.x confirmed
 
 ### Post v2.0 (Separate Project)
 - **Windows companion app** — Tauri (Rust + Web Canvas), separate repo, native Windows feel, feature parity with macOS version.
 
 ---
 
-## Known Issues / Beta Features
+## Known Issues
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Password Lock | BETA | Touch ID / Apple Watch auth working. Codex improved lock arming logic (manual start + idle=0 now locks immediately). More testing needed. |
 | Cloudflare Workers | Config present, not deployed | `wrangler.jsonc` merged to main but DNS not pointed at Cloudflare yet. GitHub Pages is live. |
