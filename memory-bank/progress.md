@@ -116,4 +116,4 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Cloudflare Workers | Config present, not deployed | `wrangler.jsonc` merged to main but DNS not pointed at Cloudflare yet. GitHub Pages is live. |
+| Cloudflare Workers | Removed | Worker route was causing 522 errors by intercepting traffic with no origin. Deleted Worker, added CNAME `@` → `ikaazu.github.io` (DNS only). GitHub Pages serving directly. |
