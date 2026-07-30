@@ -230,12 +230,28 @@
 <!-- ── Timeline ──────────────────────────────────────────────── -->
 <div class="timeline">
 
+  <!-- v2.0.1 -->
+  <div class="release">
+    <div class="release-meta">
+      <div class="release-version">v2.0.1</div>
+      <div class="release-date">July 2026</div>
+      <span class="release-badge current">Latest</span>
+    </div>
+    <div class="release-body">
+      <h3>Security</h3>
+      <ul>
+        <li><strong>Settings import validation</strong> — imported JSON settings files are now capped at 1&nbsp;MB and every field is type-checked (numbers, booleans, and strings can no longer be silently coerced from the wrong JSON type) and bounds-checked before being applied. A schema version mismatch or malformed file is rejected outright with a specific error message instead of partially applying.</li>
+        <li><strong>File read hardening</strong> — the import file picker now checks that the selected item is a regular file within the size cap before it's ever read into memory.</li>
+        <li><strong>Release build script hardening</strong> — <code>scripts/make-dmg.sh</code> now verifies the app's bundle identifier, Developer ID team, hardened runtime, and Gatekeeper acceptance before packaging, uses a fresh owner-only staging directory to prevent substitution by another local account, and pins the <code>create-dmg</code> binary to a trusted install path.</li>
+      </ul>
+    </div>
+  </div>
+
   <!-- v2.0 -->
   <div class="release">
     <div class="release-meta">
       <div class="release-version">v2.0</div>
       <div class="release-date">June 2026</div>
-      <span class="release-badge current">Latest</span>
     </div>
     <div class="release-body">
       <h3>Settings</h3>
