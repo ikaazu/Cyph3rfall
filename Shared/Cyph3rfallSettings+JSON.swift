@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 // MARK: - JSON Export / Import
 
@@ -6,6 +7,7 @@ extension Cyph3rfallSettings {
 
     // Schema version — bump if the format ever changes incompatibly.
     private static let jsonSchemaVersion = 1
+    static let jsonMaximumByteCount = 1 * 1024 * 1024
 
     // ── Export ──────────────────────────────────────────────────────────────
 
@@ -43,48 +45,91 @@ extension Cyph3rfallSettings {
     /// Parse a JSON blob and return a new CyPh3rfallSettings, preserving any
     /// fields not present in the JSON (hotkey, password lock) from `base`.
     static func from(jsonData data: Data, base: Cyph3rfallSettings) throws -> Cyph3rfallSettings {
+        guard data.count <= jsonMaximumByteCount else {
+            throw ImportError.fileTooLarge
+        }
         guard
             let raw  = try? JSONSerialization.jsonObject(with: data),
             let dict = raw as? [String: Any]
         else { throw ImportError.invalidJSON }
 
-        func int(_ k: String)    -> Int?    { dict[k] as? Int    ?? (dict[k] as? Double).map { Int($0) } }
-        func double(_ k: String) -> Double? { dict[k] as? Double }
-        func bool(_ k: String)   -> Bool?   { dict[k] as? Bool   }
-        func string(_ k: String) -> String? { dict[k] as? String }
+        func number(_ key: String) throws -> Double? {
+            guard let rawValue = dict[key] else { return nil }
+            guard let value = rawValue as? NSNumber,
+                  CFGetTypeID(value) != CFBooleanGetTypeID()
+            else { throw ImportError.invalidField(key) }
+            let result = value.doubleValue
+            guard result.isFinite else { throw ImportError.invalidField(key) }
+            return result
+        }
+
+        func int(_ key: String) throws -> Int? {
+            guard let value = try number(key) else { return nil }
+            guard value.rounded(.towardZero) == value,
+                  value >= Double(Int.min),
+                  value < Double(Int.max)
+            else { throw ImportError.invalidField(key) }
+            return Int(value)
+        }
+
+        func double(_ key: String) throws -> Double? {
+            try number(key)
+        }
+
+        func bool(_ key: String) throws -> Bool? {
+            guard let rawValue = dict[key] else { return nil }
+            guard let value = rawValue as? NSNumber,
+                  CFGetTypeID(value) == CFBooleanGetTypeID()
+            else { throw ImportError.invalidField(key) }
+            return value.boolValue
+        }
+
+        func string(_ key: String) throws -> String? {
+            guard let rawValue = dict[key] else { return nil }
+            guard let value = rawValue as? String else {
+                throw ImportError.invalidField(key)
+            }
+            return value
+        }
+
+        guard try int("schemaVersion") == jsonSchemaVersion else {
+            throw ImportError.unsupportedSchema
+        }
 
         var s = base   // start from base so unlisted fields keep their current values
 
-        if let v = double("speed") {
+        if let v = try double("speed") {
             s.speedMultiplier = v.clamped(to: 0.1 ... 4.0)
         }
-        if let v = double("density") {
+        if let v = try double("density") {
             s.density = v.clamped(to: densityRange)
         }
-        if let v = double("glyphSize") {
+        if let v = try double("glyphSize") {
             s.glyphSize = CGFloat(v).clamped(to: 8 ... 32)
         }
-        if let v = int("trailLength") {
+        if let v = try int("trailLength") {
             s.trailLength = v.clamped(to: 4 ... 60)
         }
-        if let v = bool("showGlow")       { s.showGlow         = v }
-        if let v = int("colorPreset"),
+        if let v = try bool("showGlow")       { s.showGlow         = v }
+        if let v = try int("colorPreset"),
            let preset = ColorPreset(rawValue: v) { s.colorPreset = preset }
-        if let v = bool("chromafall")     { s.colorZonesEnabled  = v }
-        if let v = bool("spectrafall")    { s.spectrafallEnabled = v }
-        if let v = int("spectrafallSpeed") {
+        if let v = try bool("chromafall")     { s.colorZonesEnabled  = v }
+        if let v = try bool("spectrafall")    { s.spectrafallEnabled = v }
+        if let v = try int("spectrafallSpeed") {
             s.spectrafallSpeedIndex = v.clamped(to: 0 ..< spectrafallSpeedOptions.count)
         }
-        if let v = bool("classicDense")   { s.classicDenseMode   = v }
-        if let v = int("columnSpacing")      { s.columnSpacingIndex  = v.clamped(to: 0 ..< columnSpacingOptions.count) }
-        if let v = bool("primaryDisplayOnly") { s.primaryDisplayOnly = v }
-        if let v = bool("messageEnabled") { s.messageEnabled     = v }
-        if let v = string("message")      { s.customMessage      = String(v.prefix(30)) }
-        if let v = bool("showClock")      { s.showClock          = v }
-        if let v = bool("showDate")       { s.showDate           = v }
-        if let v = bool("clockColorTiedToPreset") { s.clockColorTiedToPreset = v }
-        if let v = string("clockFont"), !v.isEmpty { s.clockFontName = v }
-        if let v = double("clockSize") {
+        if let v = try bool("classicDense")   { s.classicDenseMode   = v }
+        if let v = try int("columnSpacing")      { s.columnSpacingIndex  = v.clamped(to: 0 ..< columnSpacingOptions.count) }
+        if let v = try bool("primaryDisplayOnly") { s.primaryDisplayOnly = v }
+        if let v = try bool("messageEnabled") { s.messageEnabled     = v }
+        if let v = try string("message")      { s.customMessage      = String(v.prefix(30)) }
+        if let v = try bool("showClock")      { s.showClock          = v }
+        if let v = try bool("showDate")       { s.showDate           = v }
+        if let v = try bool("clockColorTiedToPreset") { s.clockColorTiedToPreset = v }
+        if let v = try string("clockFont"), !v.isEmpty {
+            s.clockFontName = String(v.prefix(128))
+        }
+        if let v = try double("clockSize") {
             s.clockFontSize = CGFloat(v).clamped(to: clockFontSizeRange)
         }
 
@@ -97,7 +142,22 @@ extension Cyph3rfallSettings {
 
     enum ImportError: LocalizedError {
         case invalidJSON
-        var errorDescription: String? { "The file could not be read as a valid Cyph3rfall settings file." }
+        case fileTooLarge
+        case unsupportedSchema
+        case invalidField(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidJSON:
+                return "The file is not valid JSON."
+            case .fileTooLarge:
+                return "The settings file is larger than 1 MB."
+            case .unsupportedSchema:
+                return "The settings file uses an unsupported schema version."
+            case .invalidField(let field):
+                return "The settings field “\(field)” has an unsupported value type."
+            }
+        }
     }
 }
 

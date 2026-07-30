@@ -1,1021 +1,272 @@
-# AGENTS.md
+# Repository Guidance for Coding Agents
 
-**Version**: 2.2 (2025-03-04) | **Compatibility**: Claude, Cursor, Copilot, Cline, Aider, all AGENTS.md-compatible tools
-**Status**: Canonical single-file guide for AI-assisted development
+## Scope
 
----
+These instructions apply to the entire repository. More specific instructions
+may be added in nested `AGENTS.md` files if a component later needs different
+rules.
 
-## Table of Contents
+This repository contains **Cyph3rfall**, a native macOS menu bar application
+that renders animated digital rain, activates after idle time, optionally asks
+macOS Local Authentication before dismissal, checks GitHub Releases for
+updates, and imports or exports visual settings as JSON.
 
-1. [Compliance & Core Rules](#1-compliance--core-rules)
-2. [Session Startup](#2-session-startup)
-   - [Compaction Protocol](#compaction-protocol-mid-session-context-preservation)
-3. [Memory Bank](#3-memory-bank)
-4. [State Machine](#4-state-machine)
-5. [Task Contract & Budgets](#5-task-contract--budgets)
-6. [Quality & Documentation](#6-quality--documentation)
-7. [Example Workflow](#7-example-workflow)
-8. [Troubleshooting](#8-troubleshooting)
+## Sources of Truth
 
----
+Use current source and configuration before historical documentation:
 
-## 1. Compliance & Core Rules
+1. The user's current request.
+2. This `AGENTS.md` and the closest nested agent instructions.
+3. `SECURITY.md` for threat model, security invariants, and finding severity.
+4. `project.yml`, `TestApp/Info.plist`, and current Swift source.
+5. `memory-bank/` and other design documents as historical context.
 
-### Startup Compliance (Output Every Session)
+Some memory-bank material is stale. For example, the live version is defined in
+`TestApp/Info.plist`, and the current `project.yml` does not assign an
+entitlements file. Do not make a current-state claim from the memory bank
+without checking the source of truth.
 
-```
-COMPLIANCE CONFIRMED: Reuse over creation
+## Repository Map
 
-⚠️  GIGO PREVENTION - User Responsibilities:
-📋 Clear task objectives | 🔗 Historical context | 🎯 Success criteria
-⚙️  Architectural constraints | 🎖️ You lead - clear input = excellent output
+- `Shared/`: rendering, settings model, persistence, JSON import/export, and
+  preferences UI.
+- `TestApp/`: application lifecycle, menu bar UI, idle activation, global
+  hotkey, full-screen windows, Local Authentication, and update installation.
+- `project.yml`: canonical Xcode project definition.
+- `Cyph3rfall.xcodeproj/`: generated Xcode project, committed for convenience.
+- `docs/`: static website published at `cyph3rfall.app`.
+- `scripts/make-dmg.sh`: release DMG packaging.
+- `dmg-assets/`: DMG artwork.
+- `memory-bank/`: historical decisions, product context, and release notes.
 
-[Continue with Memory Bank loading...]
-```
+## Working Agreements
 
-### The Four Sacred Rules
+- Inspect `git status` before changing files and preserve unrelated user work.
+- Prefer focused changes that extend existing types and patterns.
+- Do not rewrite a component merely to modernize its style.
+- Do not add a runtime dependency without explicit user approval and a concrete
+  benefit that cannot reasonably be achieved with Apple frameworks.
+- Do not edit `Cyph3rfall.xcodeproj` by hand. Edit `project.yml`, run
+  `xcodegen generate`, and review the generated project diff.
+- Do not change signing, hardened-runtime, bundle identifier, deployment
+  target, app permissions, release credentials, or notarization behavior unless
+  they are explicitly in scope.
+- Never commit credentials, signing keys, notarization passwords, API tokens,
+  private user data, or local machine paths containing sensitive information.
+- Treat downloaded data, imported JSON, release metadata, URLs, filenames, and
+  process arguments as untrusted at their boundary.
+- For audits and recommendation-only tasks, do not modify application code.
+  Separate observed facts, supported inferences, hypotheses, and proposals.
+- Do not automatically update `memory-bank/` for routine work. Update it only
+  when the user requests documentation or a durable architectural decision was
+  intentionally made.
 
-| Rule | Requirement | Validation |
-|------|-------------|------------|
-| ❌ **No new files without reuse analysis** | Search codebase, reference files that cannot be extended, provide exhaustive justification | Before creating: "Analyzed X, Y, Z. Cannot extend because [technical reason]" |
-| ❌ **No rewrites when refactoring possible** | Prefer incremental improvements, justify why refactoring won't work | "Refactoring X impossible because [specific limitation]" |
-| ❌ **No generic advice** | Cite `file:line`, show concrete integration points, include migration strategies | Every suggestion includes `file:line` citation |
-| ❌ **No ignoring existing architecture** | Load patterns before changes, extend existing services/components, consolidate duplicates | "Extends existing pattern at `file:line`" |
+## Build and Validation
 
-### Reuse Validation Checklist (Before Creating Files)
+Prerequisites are macOS 14 or later, Xcode 16 or later, and XcodeGen.
 
-```markdown
-- [ ] Searched: [search terms] → found: [list files]
-- [ ] Analyzed extension:
-  - [ ] `existing/file1.ext` - Cannot extend: [specific technical reason]
-  - [ ] `existing/file2.ext` - Cannot extend: [specific technical reason]
-- [ ] Checked patterns: `systemPatterns.md#[section]`
-- [ ] Justification: New file needed because [exhaustive reasoning]
-```
+List the project:
 
-### Non-Negotiables
-
-- **Approval Gates**: No file changes without explicit user approval
-- **Citations**: Always `file:line` for code, `file.md#Section` for Memory Bank
-- **Sandbox First**: All edits in branch/temp clone, never main
-- **MCP Preferred**: Use MCP servers for memory, repo ops, QA over brute-force context
-- **No Mock Data**: Never fake/simulated data in production; never stub functions
-- **Context Engineering**: Keep working context focused on current task
-
----
-
-## 2. Session Startup
-
-### Load Priority (Choose Based on Task Complexity)
-
-**Every Session** (mandatory):
-1. Output compliance statement (Section 1)
-2. Attach MCP servers: Read `.brain/mcp.config.json` or `.mcp.json` if present
-3. Load Memory Bank per mode below
-4. Log session: `{"ts":"2025-10-25T10:30Z","mode":"fast|standard|deep","mb_v":"2024-10"}`
-
-**Fast Track** (bug fixes, small changes):
-```
-- [ ] Load current month README: `memory-bank/tasks/YYYY-MM/README.md`
-- [ ] Check recent achievements and next priorities
-- [ ] Load `quick-start.md` if needed
+```bash
+xcodebuild -list -project Cyph3rfall.xcodeproj
 ```
 
-**Standard Discovery** (features, tests, quality-critical work):
-```
-- [ ] Current month README
-- [ ] Core files: projectbrief.md, systemPatterns.md, techContext.md, activeContext.md, progress.md
-- [ ] Scan docs/ for recent updates
-- [ ] Scan root for instructions.md, ai_instructions.md
-- [ ] Verify toc.md and activeContext.md current
+Regenerate the project only after changing `project.yml`:
+
+```bash
+xcodegen generate
 ```
 
-**Deep Dive** (architecture, legacy investigation):
-```
-- [ ] Standard Discovery files
-- [ ] Specific month README when investigating legacy
-- [ ] decisions.md for architectural context
-- [ ] Cross-reference with current work patterns
-```
+Run a local compile without requiring signing:
 
-### Session Logging (Operational Log - Separate from Memory Bank)
-
-Append-only JSONL format:
-```json
-{"timestamp":"2025-10-25T10:30:00Z","session_id":"uuid","mode":"standard","mb_version":"2024-10"}
-{"timestamp":"2025-10-25T10:35:00Z","session_id":"uuid","event":"state_transition","from":"PLAN","to":"BUILD"}
-{"timestamp":"2025-10-25T11:00:00Z","session_id":"uuid","event":"approval_requested","state":"APPROVAL"}
+```bash
+xcodebuild \
+  -project Cyph3rfall.xcodeproj \
+  -scheme Cyph3rfall \
+  -configuration Debug \
+  CODE_SIGNING_ALLOWED=NO \
+  build
 ```
 
-### Compaction Protocol (Mid-Session Context Preservation)
+Validate the property list after changing it:
 
-Compaction (context compression) can happen at any time — triggered by the system automatically, by the user via `/compact`, or by platform-level context management. **The agent does not control compaction timing and may not get advance notice.** Therefore, state persistence must be continuous, not deferred to a pre-compaction moment.
-
-#### Continuous State Persistence (At Every State Transition)
-
-At each state transition (`PLAN → BUILD → DIFF → QA → APPROVAL → APPLY → DOCS`), persist the following to the Memory Bank:
-
-1. **State machine position**: Update `activeContext.md` with current state, substate, and working context
-2. **Task progress**: Append current status to `tasks/YYYY-MM/README.md` with `[IN-PROGRESS]` tag
-3. **Decisions**: Append any new architectural decisions to `decisions.md`
-4. **Log transition** to operational log:
-   ```json
-   {"timestamp":"...","session_id":"uuid","event":"state_transition","from":"PLAN","to":"BUILD"}
-   ```
-5. **Loose context**: Capture any information that exists only in conversation (user preferences, verbal requirements, pending questions) into `activeContext.md`
-
-This ensures that when compaction occurs — without warning — the Memory Bank already reflects the latest state.
-
-#### After Compaction (Recovery)
-
-When context has been compressed (detected by loss of earlier conversation detail, or after `/compact`):
-
-1. Re-enter **Session Startup** (Section 2) using **Fast Track** mode — the Memory Bank was just updated via continuous persistence, so full discovery is unnecessary
-2. Confirm state machine position from `activeContext.md`
-3. Resume from saved state — do not restart the current task from scratch
-4. Output recovery confirmation:
-   ```
-   COMPACTION RECOVERY: Resumed [STATE] for [task name]
-   Context restored from: activeContext.md, tasks/YYYY-MM/README.md
-   ```
-
-#### Rules
-
-- State persistence happens at every transition, not "before compaction" — you cannot rely on advance notice
-- After detecting compaction, always re-read Memory Bank before taking any action
-- If the current state is `APPROVAL` or `DIFF`, the diff summary should already be in `activeContext.md` from the transition save
-- Compaction does not reset budgets — carry forward cycle/token/minute counts from the operational log
-
----
-
-## 3. Memory Bank
-
-### Structure
-
-```
-memory-bank/
-├── toc.md                    # Index (update after new files/tasks)
-├── projectbrief.md           # Vision, goals (rarely change)
-├── productContext.md         # User goals, market (quarterly)
-├── systemPatterns.md         # Architecture (pattern discovery)
-├── techContext.md            # Tech stack (new tech adoption)
-├── activeContext.md          # Current sprint (weekly/milestone)
-├── progress.md               # Status, blockers (major features)
-├── projectRules.md           # Coding standards (new patterns)
-├── decisions.md              # ADRs (architectural decisions)
-├── quick-start.md            # Common patterns, session data
-├── database-schema.md        # Data models (if applicable)
-├── build-deployment.md       # Build/deploy procedures
-├── testing-patterns.md       # Test strategies
-└── tasks/
-    ├── YYYY-MM/
-    │   ├── README.md         # Monthly summary (month end)
-    │   └── DDMMDD_*.md       # Task docs (after approval)
-    └── YYYY-MM/README.md
+```bash
+plutil -lint TestApp/Info.plist
 ```
 
-### File Reference Table
-
-| File | Purpose | Load When | Update When |
-|------|---------|-----------|-------------|
-| `toc.md` | Index/navigation | After adding files | After new files/tasks |
-| `projectbrief.md` | Core requirements | Complex tasks | Major pivots |
-| `productContext.md` | User goals, market | Complex tasks | Quarterly/strategy shifts |
-| `systemPatterns.md` | Architecture patterns | Before arch changes | Pattern discovery |
-| `techContext.md` | Tech stack decisions | Session start | New tech adoption |
-| `activeContext.md` | Current focus | Every session | Weekly/milestones |
-| `progress.md` | Current state | Session start | Major features done |
-| `projectRules.md` | Coding standards | When uncertain | New patterns emerge |
-| `decisions.md` | Why X over Y | Arch decisions | Arch decisions made |
-| `tasks/*/README.md` | Monthly summary | Month-specific work | Month end/milestone |
-| `tasks/*/*.md` | Task documentation | Investigating issues | After approval only |
+There is currently no automated test target. For behavior changes, report the
+manual checks performed and the untested areas. Relevant manual checks include:
+
+- launch and menu reconstruction;
+- idle and manual activation;
+- dismissal with password lock off and on;
+- sleep/wake while an authentication prompt is active;
+- global hotkey registration, replacement, and removal;
+- multi-display creation and teardown;
+- JSON import/export, including malformed and oversized inputs;
+- update check failure, cancellation, download, validation, install, and
+  relaunch;
+- rendering smoothness at maximum density on one and multiple displays.
+
+Release archives, signing, notarization, DMG creation, GitHub releases, and
+website deployment are explicit release operations. Do not perform them unless
+the user specifically requests them. Never publish or overwrite a release as
+an incidental verification step.
+
+## Swift and AppKit Conventions
+
+- Use Swift and AppKit; do not introduce SwiftUI without explicit approval.
+- Prefer `final` classes for concrete controller and service types.
+- Prefer value types for settings and serializable data.
+- Keep declarations `private` unless wider visibility is required.
+- Name files and types with `PascalCase`; use `camelCase` for functions,
+  properties, and constants.
+- Comment non-obvious intent, security boundaries, lifecycle behavior, and
+  performance tradeoffs rather than restating the code.
+- Keep UI work and AppKit state changes on the main thread.
+- Avoid force unwraps for data influenced by files, the network, system state,
+  or user configuration.
+
+## Rendering and Performance Invariants
+
+`Cyph3rfallView` and related glyph code are frame-sensitive. Do not put the
+following work in `draw`, `externalTick`, display-link callbacks, or per-glyph
+loops unless measurement proves it is safe:
+
+- file or network I/O;
+- `UserDefaults` access;
+- font lookup;
+- attributed-string construction;
+- repeated `NSColor`/`CGColor` conversion;
+- object allocation that can be cached;
+- logging.
+
+Preserve these established rules:
+
+- Precompute rendering state in `rebuild()` and invalidate it only when inputs
+  change.
+- Invalidate `glyphAtlas` during rebuild rather than from a draw path.
+- Construct stream colors through `StreamColor(preset:)`.
+- When settings change, ensure the rebuild size guard cannot leave stale
+  caches.
+- Draw `NSImage` in flipped views with `respectFlipped: true` and pass image
+  alpha through the drawing `fraction`.
+- Do not change the density warning threshold (`value <= 1.51`) without an
+  explicit product decision.
+
+Performance recommendations must be measurement-led. Identify the workload,
+hardware, display count and refresh rate, build configuration, sampling method,
+and before/after result. Avoid describing a speculative micro-optimization as a
+measured bottleneck.
+
+## Security-Sensitive Areas
+
+Read `SECURITY.md` before security work. The highest-value review surfaces are:
+
+- `TestApp/AppDelegate.swift`: Local Authentication state and update
+  download/install/relaunch.
+- `TestApp/FullScreenWindow.swift`: global/local event monitors and dismissal.
+- `TestApp/IdleWatcher.swift`: idle-state transitions.
+- `TestApp/HotkeyManager.swift`: Carbon callback lifetime and input handling.
+- `Shared/Cyph3rfallSettings+JSON.swift` and
+  `Shared/PreferencesWindowController.swift`: untrusted settings files.
+- `project.yml`, `TestApp/Info.plist`, and `scripts/make-dmg.sh`: signing,
+  permissions, packaging, and release integrity.
+- `docs/`: external links and static-site content.
+
+The password-lock feature is a casual privacy overlay, not an operating-system
+lock screen or authorization boundary. Preserve that product claim in code,
+documentation, and findings.
+
+### Update path
+
+Changes to update handling must preserve or improve all of the following:
+
+- bind release metadata and assets to the expected GitHub repository and HTTPS
+  origins;
+- validate HTTP status, redirects, response size, and expected asset type;
+- stage downloads safely and clean up mounts and temporary files on every path;
+- verify the candidate app's bundle identifier, Developer ID Team Identifier,
+  code signature, and notarization/Gatekeeper result before replacement;
+- avoid following attacker-controlled paths inside a mounted image;
+- avoid shell interpolation; use fixed executable URLs and argument arrays;
+- do not replace the running app until validation succeeds;
+- provide a recoverable failure path and avoid leaving a partially replaced
+  bundle.
+
+Do not assume that HTTPS transport or a GitHub release URL alone proves the
+downloaded application's authenticity.
 
-### Read vs Write Paths
+### Authentication and dismissal
 
-**Read** (frequent): Session startup, before arch decisions, when uncertain, investigating issues
-**Write** (infrequent, requires approval): After major features, pattern discovery, arch decisions, milestone completion, user requests
+- A locked overlay may dismiss after a successful result from the currently
+  active `LAContext`.
+- Results from invalidated, timed-out, pre-sleep, or superseded contexts must
+  not dismiss a newly armed overlay.
+- Keep concurrent prompts from stacking.
+- The documented no-passcode behavior prevents trapping a user and is not an
+  OS security guarantee; call out any change to that behavior explicitly.
+- Never capture, store, or log keys, clicks, biometric details, credentials, or
+  authentication error data beyond what is necessary for safe user feedback.
 
----
+### Settings files
 
-## 4. State Machine
+- Preserve `requirePassword` and hotkey settings when importing visual
+  settings.
+- Do not export those security-sensitive settings.
+- Bound input size before parsing, validate the top-level schema and version,
+  clamp numeric values, limit strings, and reject unsafe or unsupported types.
+- File access should remain user-selected and narrowly scoped.
 
-### Overview
+## Code Review Rules
 
-**States**: `PLAN → BUILD → DIFF → QA → APPROVAL → APPLY → DOCS`
-**Substates**: `CODING` (building), `WAITING_TOOL` (permissions), `RUNNING` (QA), `IDLE`
+### Update supply chain
 
-```
-PLAN [approve] → BUILD → DIFF → QA [pass] → APPROVAL [approve] → APPLY → DOCS → END
-  ↑               ↑______↓______↓_____[fail/changes]______________↓
-  └───────────────────────────────────[major changes needed]─────┘
-```
+- Flag any path that can install or execute downloaded code without verifying
+  the expected bundle identifier, Developer ID Team Identifier, code signature,
+  and notarization/Gatekeeper result. The safe path is validation before any
+  copy into the installed application.
 
----
+### Authentication lifecycle
 
-### PLAN
+- Flag stale or concurrent `LAContext` callbacks that can dismiss a later lock
+  session. The safe path is identity-checking the active context and
+  invalidating it on timeout, sleep/wake, teardown, and replacement.
 
-**In**: Task contract + MB context | **Out**: Implementation plan | **Exit**: User approves
+### Process and filesystem operations
 
-**Required Content**:
-```markdown
-## Plan: [Task Name]
+- Flag shell-string construction, untrusted executable paths, unvalidated DMG
+  paths, unsafe mount contents, broad file permissions, and non-atomic
+  replacement. Use fixed system executables, argument arrays, validated
+  canonical paths, and recoverable staging.
 
-**Analyzed**:
-- `path/file.ext:50-100` - Current implementation of X
-- `memory-bank/systemPatterns.md#Pattern` - Established pattern for Y
-- `path/service.ext` - Service handling Z
+### Settings trust boundary
 
-**Reuse Strategy**:
-- Extend `file.ext` - Add method for [functionality]
-- Integrate `service.ext:line` - New behavior at [point]
-- Cannot reuse [component] because: [specific technical reason]
+- Flag unbounded file reads, unvalidated imported fields, or import/export of
+  the password-lock and hotkey configuration. Validate and clamp before state
+  reaches rendering, authentication, or hotkey code.
 
-**Steps**:
-1. [Action] - extends pattern at `file:line`
-2. [Action] - integrates with [component]
-3. [Action] - adds tests mirroring `test.ext`
+### Permissions and signing
 
-**Integration**: [Component A] calls via [method] | [Service B] update at `file:line`
-**Risks**: [Risk] → mitigation: [approach]
-**Tests**: Unit: [scenarios] | Integration: [flows] | Manual: [paths]
-```
+- Flag weakened hardened-runtime or signing settings and newly requested
+  entitlements without a documented feature requirement and least-privilege
+  analysis.
 
-**Exit**: User responds "approved", "proceed", "looks good"
-**Failures**: Insufficient reuse → load more MB | Ambiguous → ask user | Rejected → iterate
+### Rendering regressions
 
----
+- Flag file I/O, networking, defaults access, logging, or repeatable allocation
+  added to frame, glyph, or display-link hot paths. Move the work to cached
+  rebuild or lifecycle boundaries.
 
-### BUILD
+## Definition of Done
 
-**In**: Approved plan | **Out**: Proposed diff (NOT APPLIED) | **Exit**: All changes complete, diff generated
+Before handing off a change:
 
-**Substate**: Set to `CODING`
-
-**Actions**:
-1. Work in branch/temp clone (never main)
-2. Create/modify files per approved plan
-3. Implement minimal changes achieving objective
-4. Follow patterns from `projectRules.md`
-5. Add tests alongside implementation
-6. Generate unified diff
-7. **DO NOT APPLY**
-
-**Context Management**:
-- Keep only task-relevant files in working context
-- Reference MB as needed, don't load entire codebase
-- Focused search/grep for patterns
-- Parallelize independent file operations
-
-**Agentic Primitives** (reusable building blocks):
-- Extend class/module following established patterns
-- Integrate component at defined integration points
-- Add test coverage mirroring existing test structure
-- Update config following existing patterns
-- Add error handling using project's patterns
-
-**Exit**: All planned changes done, tests written, no syntax errors, diff generated, **NOT APPLIED**
-**Failures**: Compilation errors → fix, stay in BUILD | Pattern violations → review `projectRules.md` | Integration conflicts → review `systemPatterns.md` | Two identical diffs → STALL DETECTED
-
----
-
-### DIFF
-
-**In**: BUILD complete | **Out**: Rationale + diff | **Exit**: Ready for QA
-
-**Present**:
-```markdown
-## Proposed Changes
-
-**Files**:
-```
-path/file1.ext    | 50 +++++++++---------
-path/file2.ext    | 120 +++++++++++++++++++
-tests/test.ext    | 200 +++++++++++++++++++++++++++
-3 files, 370 insertions(+), 10 deletions(-)
-```
-
-**Diff**: [unified diff output]
-
-**Rationale**:
-- Modified `file1.ext` to extend per `systemPatterns.md#Pattern`
-- Created `file2.ext` because [specific technical reason]
-- Tests follow pattern from `existing_test.ext`
-
-**Integration**: `component.ext:45` calls new method | `service.ext:120` updated | No breaking API changes
-
-**MB References**: `systemPatterns.md#Architecture` | `decisions.md#2025-09-15-strategy`
-```
-
-**Exit**: Changes presented with rationale, MB references, new file justification (if any)
-**Failures**: Cannot justify new file → return to BUILD, refactor | Missing MB refs → add explicit refs | Unclear integration → clarify
-
----
-
-### QA
-
-**In**: DIFF complete | **Out**: Structured test results | **Exit**: Tests pass OR user waiver
-
-**Substate**: Set to `RUNNING`
-
-**Execute**:
-1. Test suite (via MCP or project command)
-2. Linters and code quality checks
-3. Coverage checks
-4. Build verification
-5. Report structured results
-
-**Report Format**:
-```markdown
-## QA Results
-
-**Tests**: ✅ PASS | ❌ FAIL | Total: 145 | Passed: 145 | Failed: 0 | Duration: 23.5s
-**Linter**: ✅ PASS | ⚠️  WARNINGS | ❌ FAIL | Errors: 0 | Warnings: 2 (non-blocking)
-**Coverage**: Overall: 87.3% (+2.1%) | New code: 95.2% | Below threshold: None
-**Build**: ✅ SUCCESS | ❌ FAILURE | Duration: 12.3s
-
-**Verdict**: ✅ Ready for APPROVAL | ❌ Return to BUILD
-```
-
-**Exit (PASS)**: All tests passing, no lint errors (warnings OK with justification), coverage meets threshold, build succeeds
-**Exit (CONDITIONAL)**: Tests fail with documented waiver OR user grants waiver
-
-**Failures**: Tests fail → synthesize minimal patch, return to BUILD | Lint errors → fix, retry | Build fails → diagnose, return to BUILD
-
-**Retry Protocol**:
-- 1st fail: Analyze output, minimal fix, re-test
-- 2nd fail: Re-analyze approach, check environment, fix, re-test
-- 3rd fail: **STALL DETECTED** → request user input or agent swap
-
----
-
-### APPROVAL (HUMAN GATE)
-
-**In**: QA passed | **Out**: User decision | **Exit**: User approves explicitly
-
-**Present**:
-```markdown
-## Ready for Approval
-
-Code changes complete. Ready for review.
-
-**Files modified**:
-- `path/file1.ext` (+50, -10 lines)
-- `path/file2.ext` (+120, -5 lines)
-- `tests/test.ext` (+200, -0 lines)
-
-**Git diff**: [git diff --stat if in repo]
-
-**Test Results**:
-✅ 145 tests passing | ✅ Linter clean | ✅ Coverage: 87.3% (+2.1%) | ✅ Build successful
-
-**Review Gates**:
-- ✅ Tests pass
-- ✅ Security reviewed (no sensitive data, validated inputs, safe errors, follows auth patterns)
-- ✅ Linter clean
-- ✅ Documentation plan: Will create `tasks/2025-10/251025_task-name.md` + update monthly README
-
-**Next Steps After Approval**:
-1. Apply changes to sandbox branch
-2. Create task documentation
-3. Update monthly README
-4. Update relevant MB files (if applicable)
-
----
-
-**Please review. Reply with**:
-- "approved" | "looks good" | "document it" → Proceed to APPLY
-- "change X" | "fix Y" → Return to BUILD with changes
-- "revert" → Discard all changes
-```
-
-**Exit**: User responds with approval keywords: "approved", "looks good", "document it", "apply it", "ship it"
-**Alternative Paths**: User requests changes → BUILD | User requests revert → discard, return to START | User requests info → provide details, stay in APPROVAL
-**Failures**: Ambiguous response → ask for explicit approval | Approval without gates passing → warn, request waiver | Long wait → stay IDLE, do not proceed
-
----
-
-### APPLY
-
-**In**: User approved | **Out**: Changes applied or rollback | **Exit**: Applied successfully OR rolled back
-
-**Actions**:
-1. Apply all proposed changes to sandbox branch
-2. Verify application successful
-3. Optional: Quick smoke test
-4. Report success or initiate rollback
-
-**Success**:
-```markdown
-## Changes Applied
-
-✅ All changes applied to sandbox branch
-✅ 3 files modified
-✅ Quick verification passed
-
-Ready for DOCS.
-```
-
-**Failure**:
-```markdown
-## Apply Failed - Rolling Back
-
-❌ Failed: [error]
-🔄 Rolling back to previous state
-📝 Sandbox restored
-
-Diagnosis: [technical reason]
-Recommendation: [fix or alternative]
-
-Returning to BUILD.
-```
-
-**Exit (Success)**: All changes applied, sandbox updated, optional smoke test passed
-**Exit (Failure)**: Rollback complete, sandbox restored, error diagnosed
-**Failures**: File conflicts → resolve, retry | Permission errors → check perms, retry | Verification fail → rollback, return to BUILD | Rollback fails → **CRITICAL** → user intervention
-
----
-
-### DOCS
-
-**In**: APPLY succeeded + user approved code | **Out**: Task docs, MB updates | **Exit**: All docs complete
-
-**CRITICAL**: Only enter after user approved code changes (from APPROVAL state)
-
-**Create**:
-1. Task doc: `memory-bank/tasks/YYYY-MM/DDMMDD_task-name.md`
-2. Update monthly README: `memory-bank/tasks/YYYY-MM/README.md`
-3. Update `projectRules.md` if new patterns
-4. Update `decisions.md` if arch decisions
-5. Update `toc.md` if new MB files
-6. Open documentation PR (or commit if user prefers)
-
-**Task Doc Template**:
-```markdown
-# YYMMDD_task-name
-
-## Objective
-[What was accomplished]
-
-## Outcome
-- ✅ Tests: 145 passing (+10 new)
-- ✅ Coverage: 87.3% (+2.1%)
-- ✅ Build: Successful
-- ✅ Review: Approved
-
-## Files Modified
-- `file1.ext` - Added [functionality]
-- `file2.ext` - Extended [service] for [scenario]
-- `tests/test.ext` - Tests for [functionality]
-
-## Patterns Applied
-- `systemPatterns.md#Pattern`
-- Updated `projectRules.md#ErrorHandling` (added: log at integration boundaries)
-
-## Integration Points
-- `component.ext:45` via new method
-- `service.ext:120` updated for new data flow
-
-## Architectural Decisions
-- Decision: Event-driven for async updates
-- Rationale: Loose coupling per `decisions.md#2025-09-01-event-driven`
-- Trade-offs: Higher complexity, better scalability
-
-## Artifacts
-- PR: [link]
-- Diff: [link]
-```
-
-**Monthly README Update**:
-```markdown
-## Tasks Completed
-
-### 2025-10-25: [Task Name]
-- Implemented [brief description]
-- Files: `file1.ext`, `file2.ext`
-- Pattern: Extended [existing pattern]
-- See: [251025_task-name.md](./251025_task-name.md)
-```
-
-**MB Updates**:
-
-`projectRules.md`:
-```markdown
-### [New Pattern]
-**Context**: Discovered during [task]
-**Pattern**: [description]
-**Implementation**: [how to apply]
-**Example**: `file.ext:line-range`
-```
-
-`decisions.md`:
-```markdown
-### YYYY-MM-DD: [Decision]
-**Status**: Approved
-**Context**: [why needed]
-**Decision**: [what decided]
-**Alternatives**: [other options, why not]
-**Consequences**: [positive/negative outcomes]
-**References**: `tasks/YYYY-MM/DDMMDD_task-name.md`
-```
-
-**Exit**: Task doc created, monthly README updated, relevant MB files updated, docs PR opened
-**Failures**: Template violations → correct format | Missing references → add explicit refs | Incomplete updates → ensure all MB files updated
-
----
-
-## 5. Task Contract & Budgets
-
-### Task Contract Format
-
-```markdown
-## Task: [Clear, specific objective]
-
-### Context
-- **Repository**: [path or monorepo location]
-- **Related Work**: [prior tasks, MB entries]
-- **Constraints**: [arch rules, security, performance]
-- **Affected Systems**: [components, services, modules]
-
-### Expected Outcomes
-- **Acceptance Criteria**:
-  1. [Specific, testable criterion]
-  2. [Specific, testable criterion]
-- **Success Metrics**: [how to measure completion]
-- **Definition of Done**: [when truly complete]
-
-### Historical Reference
-- **Prior Tasks**: [links to `tasks/YYYY-MM/DDMMDD_*.md`]
-- **Arch Decisions**: [links to `decisions.md` entries]
-- **Related Patterns**: [refs to `systemPatterns.md`, `projectRules.md`]
-
-### Architectural Constraints
-- **Must Follow**: [specific patterns from MB]
-- **Must Extend**: [specific existing files]
-- **Must Not**: [anti-patterns, approaches to avoid]
-- **Security**: [specific security considerations]
-
-### Instructions
-Create outline for approval. After approval, do work. Do not document until I approve completion.
-```
-
-### Budget System
-
-**Budget Types**:
-- **Cycles**: Max BUILD → QA iterations (default: 3)
-- **Tokens**: Max context tokens (default: agent-specific limits)
-- **Minutes**: Max wall-clock time (default: 30 min for standard tasks)
-
-**Tracking**:
-```json
-{
-  "task_id": "251025_task",
-  "budgets": {
-    "cycles": {"allocated": 3, "consumed": 1, "remaining": 2},
-    "tokens": {"allocated": 100000, "consumed": 45000, "remaining": 55000},
-    "minutes": {"allocated": 30, "consumed": 12, "remaining": 18}
-  },
-  "status": "within_budget"
-}
-```
-
-**Budget Exceeded Actions**:
-- Cycles exceeded → STALL DETECTED → user intervention
-- Tokens exceeded → minimal context mode or agent swap
-- Minutes exceeded → present progress, request extension
-
-**Extension**: User approval only. Request with: current progress, reason for overrun, estimated additional resources, alternatives
-
-### Stall Detection
-
-**Condition**: Two consecutive identical diffs (same files, same changes)
-
-**Response**:
-```markdown
-## STALL DETECTED
-
-⚠️  Two identical diffs - unable to progress
-
-**Diagnosis**:
-- Cause: [specific technical reason]
-- Attempted: [what was tried]
-- Blocker: [what prevents progress]
-
-**Recommendations**:
-1. More Context: Load [specific MB files/codebase areas]
-2. Alternative: [different technical strategy]
-3. Agent Swap: Switch to [specialized agent] for subtask
-
-**Request**: Provide direction or choose recommendation
-
-**Budgets**: Cycles: 3/3 ⚠️ | Tokens: 85K/100K | Minutes: 28/30 ⚠️
-```
-
-### Context Management
-
-**Context Zones**:
-1. **Core** (always): Task contract, relevant MB files, current state
-2. **Task** (current task): Files being modified, direct dependencies, related tests
-3. **Reference** (on-demand): Arch patterns, similar implementations, historical decisions
-
-**Context Rotation**: After each state transition, drop Task Context, reload only what's needed for next state. Keep Core Context persistent. State is persisted to Memory Bank at every transition per **Compaction Protocol** (Section 2), so compaction recovery is automatic.
-
-**Parallel Execution**:
-```
-Task decomposition:
-1. [Independent A] - parallel
-2. [Independent B] - parallel
-3. [Dependent C] - requires A+B
-
-Execution: Spawn parallel agents for A+B with focused context → Wait → Execute C with results
-```
-
----
-
-## 6. Quality & Documentation
-
-### Absolute Prohibitions
-
-| Prohibition | Consequence |
-|-------------|-------------|
-| ❌ No fake/simulated/mock data in production code | Rollback + restart |
-| ❌ No stubbed functions marked complete | Rollback + restart |
-| ❌ No ignoring test failures | Rollback + restart |
-| ❌ No "defensive programming" (fix root cause) | Rollback + restart |
-| ❌ No applying changes without approval | Rollback + restart |
-
-Test fixtures and test mocks are acceptable. Production fake data is never acceptable.
-
-### Code Reuse Enforcement
-
-**Before creating any new file**:
-1. Search codebase for similar functionality
-2. Check `systemPatterns.md` for patterns
-3. Review existing architecture for extension points
-4. Document why extension impossible (if claiming so)
-
-**Validation** (see Section 1 checklist)
-
-### Security Review (Part of APPROVAL State)
-
-**Checklist**:
-- [ ] **Auth/Authz**: No hardcoded creds | Auth checked before sensitive ops | Authz at boundaries | Session mgmt follows patterns
-- [ ] **Data Handling**: Input validation on external data | Output encoding prevents injection | Sensitive data encrypted (rest/transit if applicable)
-- [ ] **Error Handling**: No sensitive data in errors | Errors logged appropriately | Graceful degradation
-- [ ] **Dependencies**: No known vulnerabilities | Versions pinned | Licenses compatible
-
-If any item fails, address before APPROVAL state.
-
-### Linting & Code Quality
-
-**Requirements**: Zero errors before APPROVAL | Warnings OK with justification | Follow project's linting rules
-
-**Standards**: Language idioms | Consistent naming (from `projectRules.md`) | Single-purpose functions | Max 3-4 nesting levels | Comment complex logic only
-
-### Testing Requirements
-
-**Coverage**: Unit tests for all new functions | Integration tests for workflows | Edge case coverage for critical paths | Clear test names
-
-**Quality**: Deterministic (no flaky tests) | Independent (no shared state) | Fast (optimize slow tests) | Maintainable (clear, readable)
-
-### Documentation Standards
-
-**Files Requiring Approval Before Creation**:
-- Any `memory-bank/tasks/*/` files (task docs)
-- Updates to `memory-bank/tasks/*/README.md` (monthly summaries)
-- Updates to `memory-bank/decisions.md` (ADRs)
-- Updates to `memory-bank/projectRules.md` (patterns)
-- Any commits to version control
-
-**Files NOT Requiring Approval**: App code, tests, config updates, operational logs
-
-**Approval Gate Workflow**:
-1. Complete code changes (BUILD → DIFF → QA)
-2. Present in APPROVAL state
-3. **WAIT** for user response
-4. If approved: APPLY → DOCS
-5. If changes requested: BUILD
-6. If reverted: discard all
-
-**Citation Formats**:
-- Code: `path/file.ext:42` (single line) | `path/file.ext:42-58` (range) | `path/file.ext:functionName()` (function)
-- MB: `memory-bank/systemPatterns.md#Section` | `memory-bank/decisions.md#2025-10-15-decision` | `memory-bank/tasks/2025-10/251025_task.md`
-- Always include context: ✅ "Extended `services/auth.ext:45` following `systemPatterns.md#Service Extension Pattern`" | ❌ "Updated service per systemPatterns.md"
-
-**When to Update MB**:
-- ✅ Completing major features (update `progress.md`)
-- ✅ Discovering new patterns (update `systemPatterns.md`, `projectRules.md`)
-- ✅ Making arch decisions (update `decisions.md`)
-- ✅ User explicitly requests: "update memory bank"
-- ✅ Milestone completion (update monthly README)
-- ❌ Minor bug fixes (task doc only)
-- ❌ Code formatting (no doc needed)
-- ❌ Dependency updates (task doc only)
-- ❌ Routine maintenance (task doc only)
-
-### Versioning & Rollback
-
-**Version Management**: Do not invent release/milestone IDs. If new milestone needed, output Proposal block for user to assign ID.
-
-**Rollback Triggers**: APPLY fails | User requests revert | Critical error | Security vulnerability
-
-**Rollback Protocol**:
-1. Identify last known good state
-2. Restore all files to that state
-3. Verify rollback successful
-4. Log rollback in operational log
-5. Report to user: reason, reverted changes, current state, recommendation
-
----
-
-## 7. Example Workflow
-
-### Task: Add Email Notification on Onboarding Complete
-
-#### PLAN State
-
-```markdown
-## Plan: Onboarding Email
-
-**Analyzed**:
-- `services/onboarding.ext:120-150` - Current completion logic
-- `services/notification.ext` - Existing notification service
-- `systemPatterns.md#Event-Driven` - Event pattern
-- `projectRules.md#Email Templates` - Email standards
-
-**Reuse**:
-- Extend `onboarding.ext:145` - emit "onboarding_completed" event
-- Extend `notification.ext:67` - add event listener
-- Add `templates/emails/onboarding_complete.template` - follow `welcome.template` pattern
-
-Cannot create new notification service - existing service handles all notifications.
-
-**Steps**:
-1. `onboarding.ext:145` - emit event on completion
-2. `notification.ext:67` - add listener for event
-3. Create template following `welcome.template`
-4. Add tests mirroring `tests/notification_test.ext`
-
-**Integration**: Onboarding emits → Notification listens → Email service delivers (existing)
-**Risks**: Email delivery fail → existing retry logic handles
-**Tests**: Unit (event emission, listener) | Integration (e2e onboarding → email) | Manual (complete flow, verify email)
-
-Ready for approval.
-```
-
-**User**: "approved"
-
----
-
-#### BUILD State
-
-```
-Entering BUILD (substate: CODING)
-
-Changes:
-1. Modified `services/onboarding.ext:145` - added event emission
-2. Extended `services/notification.ext:67` - added listener
-3. Created `templates/emails/onboarding_complete.template`
-4. Added `tests/notification_onboarding_test.ext`
-
-Diff shows:
-- services/onboarding.ext (+5, -1)
-- services/notification.ext (+23, -0)
-- templates/emails/onboarding_complete.template (+45, -0)
-- tests/notification_onboarding_test.ext (+120, -0)
-
-Ready for DIFF.
-```
-
----
-
-#### DIFF State
-
-```markdown
-## Proposed Changes
-
-**Files**:
-```
-services/onboarding.ext                        |   5 +-
-services/notification.ext                       |  23 +++
-templates/emails/onboarding_complete.template  |  45 ++++
-tests/notification_onboarding_test.ext         | 120 +++++++++++
-4 files, 193 insertions(+), 1 deletion(-)
-```
-
-**Key Changes**:
-
-`services/onboarding.ext`:
-```diff
-- // User completed onboarding
-+ // User completed onboarding
-+ emit_event('onboarding_completed', user_id, completion_data)
-```
-
-`services/notification.ext`:
-```diff
-+ function handle_onboarding_completed(user_id, data) {
-+   template = load_template('onboarding_complete')
-+   user = fetch_user(user_id)
-+   send_email(user.email, template, data)
-+ }
-+ register_event_listener('onboarding_completed', handle_onboarding_completed)
-```
-
-**Rationale**: Follows `systemPatterns.md#Event-Driven Notifications` | Template matches existing structure | Tests mirror `tests/notification_welcome_test.ext`
-
-**Integration**: No breaking changes | Event system handles async | Existing retry logic for failures
-
-Ready for QA.
-```
-
----
-
-#### QA State
-
-```markdown
-Entering QA (substate: RUNNING)
-
-## QA Results
-
-**Tests**: ✅ PASS | Total: 156 (+11) | Passed: 156 | Failed: 0 | Duration: 18.2s
-**Linter**: ✅ PASS | Errors: 0 | Warnings: 0
-**Coverage**: Overall: 88.1% (+0.8%) | New code: 100% | Below threshold: None
-**Build**: ✅ SUCCESS | Duration: 9.7s
-
-**Verdict**: ✅ Ready for APPROVAL
-```
-
----
-
-#### APPROVAL State
-
-```markdown
-## Ready for Approval
-
-Code changes complete. Ready for review.
-
-**Files modified**:
-- `services/onboarding.ext` (+5, -1)
-- `services/notification.ext` (+23, -0)
-- `templates/emails/onboarding_complete.template` (+45, -0)
-- `tests/notification_onboarding_test.ext` (+120, -0)
-
-**Git diff**: 4 files, 193 insertions(+), 1 deletion(-)
-
-**Test Results**:
-✅ 156 tests passing (+11) | ✅ Linter clean | ✅ Coverage: 88.1% (+0.8%) | ✅ Build successful
-
-**Review Gates**:
-- ✅ Tests pass
-- ✅ Security reviewed (no sensitive data in emails, template escaped)
-- ✅ Linter clean
-- ✅ Documentation plan: Create `tasks/2025-10/251025_onboarding-email.md` + update monthly README
-
-**Please review. Reply with**:
-- "approved" | "looks good" | "document it" → APPLY
-- "change X" | "fix Y" → BUILD with changes
-- "revert" → Discard changes
-```
-
-**User**: "looks good"
-
----
-
-#### APPLY State
-
-```markdown
-Entering APPLY
-
-## Changes Applied
-
-✅ All changes applied to sandbox branch
-✅ 4 files modified
-✅ Quick verification passed
-
-Ready for DOCS.
-```
-
----
-
-#### DOCS State
-
-```markdown
-Entering DOCS
-
-## Documentation Created
-
-✅ Created `memory-bank/tasks/2025-10/251025_onboarding-email.md`
-✅ Updated `memory-bank/tasks/2025-10/README.md`
-✅ No MB pattern updates needed (used existing pattern)
-
-Task complete.
-```
-
----
-
-## 8. Troubleshooting
-
-### Decision Tree: Agent Stuck
-
-```
-Stuck? → Cycles ≥3?
-           ↓ YES
-         Identical diffs?
-           ↓ YES → Load more MB context OR agent swap
-           ↓ NO
-         Different diffs?
-           ↓ YES
-         Same QA failure?
-           ↓ YES → Environment issue OR requirement ambiguity
-           ↓ NO
-         Analyze failure pattern → Adjust approach
-```
-
-### Common Issues
-
-| Issue | Symptoms | Resolution |
-|-------|----------|------------|
-| **Loop** | Same diff multiple times, QA fails repeatedly, no progress after 3+ cycles | Check budgets → Load more MB → Clarify requirements → Check environment → Agent swap |
-| **Context Exceeded** | Token limit approaching, slow/truncated responses, forgetting earlier info | State already persisted via **Compaction Protocol** (Section 2) → Rotate context (drop Task, reload essentials) → Focused mode (MB summaries only) → Break into subtasks → Agent swap |
-| **CI ≠ Local** | QA passes, CI fails | Compare environments → Verify dependency versions → Check timing/concurrency → Check state cleanup → Document waiver if CI issue |
-| **Security Fail** | Security checklist incomplete, sensitive data exposed, auth/authz bypassed | Never bypass → Return to BUILD → Fix all issues → Re-test → Document pattern if new |
-
-### Stall Detection Protocol
-
-**Condition**: Two consecutive identical diffs
-
-**Response**:
-1. Detect: Compare current diff with previous
-2. Log: Record in operational log
-3. Halt: Stop all BUILD attempts
-4. Report: Present diagnosis to user
-5. Request: More context, alternative approach, or agent swap
-
-### Recovery Procedures
-
-**Full Reset** (complete breakdown):
-1. Log current state
-2. Discard uncommitted changes
-3. Reset to last known good state
-4. Start new session with fresh agent
-5. Load MB in full (Standard Discovery)
-6. Re-analyze with fresh perspective
-
-**Partial Rollback** (recent regression):
-1. Identify last working state
-2. Rollback only problematic changes
-3. Keep working changes
-4. Re-test to verify stability
-5. Continue from DIFF or BUILD
-
-**Agent Swap** (capability mismatch):
-1. Complete current state (clean boundary)
-2. Document progress in operational log
-3. Prepare focused context: task contract, relevant MB files, current work state
-4. Spawn specialized agent with focused context
-5. Let specialized agent complete subtask
-6. Integrate results back into main workflow
-
----
-
-## Quick Reference
-
-### State Transitions
-
-`PLAN [user approves] → BUILD → DIFF → QA [pass] → APPROVAL [user approves] → APPLY → DOCS`
-
-Iterations on failure: `BUILD ← DIFF ← QA ← APPROVAL`
-Major changes: Return to `PLAN`
-
-### Critical Rules
-
-1. 🚫 No new files without exhaustive reuse analysis
-2. 🚫 No applying changes without user approval
-3. 🚫 No documentation until code approved
-4. 🚫 No fake/mock data in production
-5. ✅ Always cite `file:line` for code, `file.md#Section` for MB
-6. ✅ Always work in sandbox (never main)
-7. ✅ Always validate reuse opportunities first
-
-### When Stuck
-
-1. Check cycle count (>3 = stall)
-2. Check for identical diffs (stall indicator)
-3. Load more MB context
-4. Break into smaller subtasks
-5. Request user intervention
-6. Consider agent swap
-
-### Files Never Created Without Approval
-
-- `memory-bank/tasks/*/` (task docs)
-- `memory-bank/tasks/*/README.md` (monthly summaries)
-- Any commits to version control
-
----
-
-**Each session starts fresh. Memory Bank is your only persistent memory. Maintain it with precision.**
-
-**Mission**: Build software respecting existing architecture, following established patterns, improving incrementally. Reuse over creation. Quality over speed. Approval over assumption.
-
-**Let's build smarter — together.**
+- review the diff for unrelated or generated noise;
+- run the smallest relevant validation commands above;
+- report build/test/manual-check results honestly;
+- describe security, privacy, performance, compatibility, and release impact;
+- identify untested paths and assumptions;
+- update user-facing documentation when behavior or security claims change;
+- never claim that a scan, successful build, notarization, or AI review proves
+  the application is secure.

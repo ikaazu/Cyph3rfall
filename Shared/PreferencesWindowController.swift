@@ -506,16 +506,26 @@ final class PreferencesWindowController: NSWindowController, NSTextFieldDelegate
         panel.allowedContentTypes    = [.json]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK,
-              let url  = panel.url,
-              let data = try? Data(contentsOf: url) else { return }
+              let url = panel.url else { return }
 
-        if let imported = try? Cyph3rfallSettings.from(jsonData: data, base: collect()) {
+        do {
+            let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values.isRegularFile == true,
+                  let fileSize = values.fileSize,
+                  fileSize <= Cyph3rfallSettings.jsonMaximumByteCount
+            else {
+                throw Cyph3rfallSettings.ImportError.fileTooLarge
+            }
+
+            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+            let imported = try Cyph3rfallSettings.from(jsonData: data, base: collect())
             populate(from: imported)
             previewRainView.settings = collect()
-        } else {
+        } catch {
             let alert = NSAlert()
             alert.messageText     = "Import Failed"
-            alert.informativeText = "The selected file could not be read as a valid Cyph3rfall settings file."
+            alert.informativeText = (error as? LocalizedError)?.errorDescription
+                ?? "The selected file could not be read as a valid Cyph3rfall settings file."
             alert.alertStyle      = .warning
             alert.runModal()
         }
